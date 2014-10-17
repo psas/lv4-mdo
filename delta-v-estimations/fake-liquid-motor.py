@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 from math import pi, log
+import os
 from sys import platform as _platform
 
 # Assumptions
@@ -183,17 +184,18 @@ file_tail = """
 </engine-list>
 </engine-database>"""
 
-
-if "linux" in _platform:
-    prifix = "~/.openrocket/ThrustCurves/"
+prefix = "./"
+if 'linux' in _platform:
+    prefix =  os.path.join(os.getenv("HOME"), '.openrocket/ThrustCurves/')
 elif _platform == "darwin":
-    print "osx?"
+    print "OSX? I don't know where to put your file"
 elif "win" in _platform:
-    print "win"
+    prefix = os.path.join(os.getenv("APPDATA"), "OpenRocket/ThrustCurves/")
 
-
-with open('psas_motor.rse', 'w') as eng:
+with open(os.path.join(prefix, 'psas_motor.rse'), 'w') as eng:
     eng.write(file_head)
     for d in data:
         eng.write(d)
     eng.write(file_tail)
+
+print "Reopen OpenRocket to run simulation"
