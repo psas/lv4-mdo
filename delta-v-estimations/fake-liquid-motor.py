@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+from __future__ import print_function
 from math import pi, log
 import os
 from sys import platform as _platform
@@ -53,12 +54,12 @@ M_f = Burn_time * mdot_f
 M_prop = M_o + M_f
 
 
-print "Total Propellent Mass: %5.1f kg" % M_prop
-print "Ox mass:               %5.1f kg" % M_o
-print "Fuel mass: . . . . . . %5.1f kg" % M_f
-print "Mass flow:             %7.3f kg/s" % mdot
-print "Ox flow: . . . . . . . %7.3f kg/s" % mdot_o
-print "Fuel flow:             %7.3f kg/s" % mdot_f
+print("Total Propellent Mass: %5.1f kg" % M_prop)
+print("Ox mass:               %5.1f kg" % M_o)
+print("Fuel mass: . . . . . . %5.1f kg" % M_f)
+print("Mass flow:             %7.3f kg/s" % mdot)
+print("Ox flow: . . . . . . . %7.3f kg/s" % mdot_o)
+print("Fuel flow:             %7.3f kg/s" % mdot_f)
 
 # ### Tank Geometry
 def tank_length(m, rho):
@@ -71,9 +72,9 @@ l_f = tank_length(M_f, rho_eth)
 l_f += l_f*0.1 # add 10% for ullage
 length = sum([l_o, gaps, l_f, gaps, l_plumb, gaps, l_engine])
 
-print "Ox tank length: . . . .%7.3f m" % l_o
-print "Fuel tank length:      %7.3f m" % l_f
-print "System length: . . . . %7.3f m" % length
+print("Ox tank length: . . . .%7.3f m" % l_o)
+print("Fuel tank length:      %7.3f m" % l_f)
+print("System length: . . . . %7.3f m" % length)
 
 
 # ### Tank Mass
@@ -81,19 +82,19 @@ print "System length: . . . . %7.3f m" % length
 def tank_mass(l):
     area = 2*pi*r*l + 2*pi*r*r
     thickness = 9.448e-4 / Tank['Ftu']
-    print "Tank thickness:        %5.1f mm" % (thickness*1000)
+    print("Tank thickness:        %5.1f mm" % (thickness*1000))
     material = area * thickness
     mass = material * Tank['rho']
     return mass
 
 m_tank_o = tank_mass(l_o)
 m_tank_f = tank_mass(l_f)
-print "Ox tank mass: . . . . .%5.1f kg" % m_tank_o
-print "Fuel tank mass:        %5.1f kg" % m_tank_f
+print("Ox tank mass: . . . . .%5.1f kg" % m_tank_o)
+print("Fuel tank mass:        %5.1f kg" % m_tank_f)
 
 
 dry_mass = sum([m_engine, m_plumb, m_tank_o, m_tank_f])
-print "Dry Mass: . . . . . . .%5.1f kg" % dry_mass
+print("Dry Mass: . . . . . . .%5.1f kg" % dry_mass)
 
 # lox tank cm is in the center of the tank
 cm_tank_o = l_o / 2.0
@@ -138,12 +139,12 @@ def cm(t):
 
 # NAR letter code
 impulse = Thrust*Burn_time
-print ""
-print "Total impulse:    %0.0f N.s" % impulse
+print("")
+print("Total impulse:    %0.0f N.s" % impulse)
 
 nar_i = int(log(impulse/2.5)/log(2))
 nar_percent = impulse/(2.5*2**(nar_i+1))
-print 'NAR:              "%s" (%0.0f%%)' % (chr(66+nar_i), nar_percent*100)
+print('NAR:              "%s" (%0.0f%%)' % (chr(66+nar_i), nar_percent*100))
 
 file_head = """<engine-database>
   <engine-list>
@@ -188,7 +189,7 @@ prefix = "./"
 if 'linux' in _platform:
     prefix =  os.path.join(os.getenv("HOME"), '.openrocket/ThrustCurves/')
 elif _platform == "darwin":
-    print "OSX? I don't know where to put your file"
+    print("OSX? I don't know where to put your file")
 elif "win" in _platform:
     prefix = os.path.join(os.getenv("APPDATA"), "OpenRocket/ThrustCurves/")
 
@@ -198,4 +199,4 @@ with open(os.path.join(prefix, 'psas_motor.rse'), 'w') as eng:
         eng.write(d)
     eng.write(file_tail)
 
-print "Reopen OpenRocket to run simulation"
+print("Reopen OpenRocket to run simulation")
