@@ -55,3 +55,6 @@ target/
 
 # ipython
 .ipynb_checkpoints
+
+# our stuff
+*.rse
