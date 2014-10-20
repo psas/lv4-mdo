@@ -28,11 +28,11 @@ rho_eth  =    852.3   # kg/m^3  Desity of Ethanol (with 70% H2O)
 m_engine =      2.0   # kg
 l_engine =      0.300 # m
 m_plumb  =      5.0   # kg
-l_plumb  =      0.300 # m
+l_plumb  =      0.350 # m
 gaps     =      0.100 # m
 
 # Variables (Change these!)
-Thrust    =  1800.0    # N       Thrust of engine
+Thrust    =  2500.0    # N       Thrust of engine
 Burn_time =    45.0    # s       Duration of the burn
 Tank      = Al         # Choose from above table
 
@@ -175,7 +175,7 @@ for i in range(n):
     data.append('     <eng-data  t="{t}" f="{thrust}" m="{mass}" cg="{cg}"/>\n'.format(**{
         't': t,
         'thrust': Thrust,
-        'mass': mass(t)*1000,
+        'mass': dry_mass*1000 + mass(t)*1000,
         'cg': cm(t)*1000,
     }))
 
