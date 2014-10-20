@@ -58,3 +58,4 @@ target/
 
 # our stuff
 *.rse
+*.csv
