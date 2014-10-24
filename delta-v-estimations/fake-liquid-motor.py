@@ -187,9 +187,11 @@ file_tail = """
 
 prefix = "./"
 if 'linux' in _platform:
-    prefix =  os.path.join(os.getenv("HOME"), '.openrocket/ThrustCurves/')
+    home = os.path.expanduser("~")
+    prefix =  os.path.join(home, '.openrocket/ThrustCurves/')
 elif _platform == "darwin":
-    print("OSX? I don't know where to put your file")
+    home = os.path.expanduser("~")
+    prefix =  os.path.join(home, 'Library/Application Support/OpenRocket/')
 elif "win" in _platform:
     prefix = os.path.join(os.getenv("APPDATA"), "OpenRocket/ThrustCurves/")
 
