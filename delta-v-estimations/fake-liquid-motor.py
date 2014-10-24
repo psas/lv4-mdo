@@ -14,11 +14,11 @@ g_0      =     9.80665  # kg.m/s^2     Standard gravity
 
 # Tank Material
 Al    = { 'rho': 2800.0,   # kg/m^3       Density
-          'Ftu':    0.214} # GPa          Ultimate strength
+          'Ftu':    0.270} # GPa          Yield strength
 Steel = { 'rho': 7830.0,   # kg/m^3       Density
-          'Ftu':    0.862} # GPa          Ultimate strength
+          'Ftu':    0.250} # GPa          Yield strength
 CF    = { 'rho': 1550.0,   # kg/m^3       Density
-          'Ftu':    0.895} # GPa          Ultimate strength
+          'Ftu':    0.450} # GPa          Yield strength
 
 # Chemestry
 rho_lox  =   1141.0   # kg/m^3  Desity of LOX
@@ -32,9 +32,9 @@ l_plumb  =      0.350 # m
 gaps     =      0.100 # m
 
 # Variables (Change these!)
-Thrust    =  2500.0    # N       Thrust of engine
+Thrust    =  3000.0    # N       Thrust of engine
 Burn_time =    45.0    # s       Duration of the burn
-Tank      = Al         # Choose from above table
+Tank      = CF         # Choose from above table
 
 
 # ### Mass and Flow
