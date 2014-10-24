@@ -191,7 +191,7 @@ if 'linux' in _platform:
     prefix =  os.path.join(home, '.openrocket/ThrustCurves/')
 elif _platform == "darwin":
     home = os.path.expanduser("~")
-    prefix =  os.path.join(home, 'Library/Application Support/OpenRocket/')
+    prefix =  os.path.join(home, 'Library/Application Support/OpenRocket/ThrustCurves/')
 elif "win" in _platform:
     prefix = os.path.join(os.getenv("APPDATA"), "OpenRocket/ThrustCurves/")
 
