@@ -15,7 +15,7 @@ g_0      =     9.80665  # kg.m/s^2     Standard gravity
 # Tank Material
 Al    = { 'rho': 2800.0,   # kg/m^3       Density
           'Sy':    0.270E9} # Pa          Yield strength
-Steel = { 'Sy': 7830.0,   # kg/m^3       Density
+Steel = { 'rho': 7830.0,   # kg/m^3       Density
           'Sy':    0.250E9} # Pa          Yield strength
 CF    = { 'rho': 1550.0,   # kg/m^3       Density
           'Sy':    0.450E9} # Pa          Yield strength
