@@ -32,9 +32,10 @@ l_plumb  =      0.350 # m
 gaps     =      0.100 # m
 
 # Variables (Change these!)
-Thrust    =  2500.0    # N       Thrust of engine, assume a value between 1-6 kN
+Thrust    =  3000.0    # N       Thrust of engine, assume a value between 1-6 kN
 Burn_time =    30.0    # s       Duration of the burn, assume a value between 30 and 90 s
-Tank      = Al         # Choose from above table, ignore steel
+Tank      = CF         # Choose from above table, ignore steel
+factor_of_safety = 2   # factor of saftey
 
 
 # ### Mass and Flow
@@ -79,28 +80,32 @@ print("System length: . . . . %7.3f m" % length)
 
 # ### Tank Mass
 
-def tank_mass(l):
+def tank_mass(l, tank):
     area = 2*pi*r*l + 2*pi*r*r
-    P_i=3.042E6 # Tank pressure in Pa, assuming pressure fed with regulator (roughly 441 psig)
-    radius_o = r # outer radius, meters
-    fs = 2 # design factor of safety
-    design_stress = Tank['Sy']/fs
-    radius_i = sqrt(design_stress*radius_o**2/(2*P_i + design_stress)) # inner radius
+
+    P_i = 3.042e6  # Tank pressure in Pa, assuming pressure fed with regulator (roughly 441 psig)
+    radius_o = r   # outer radius, meters
+    design_stress = tank['Sy']/factor_of_safety
+    radius_i = sqrt(design_stress * (radius_o**2) / ((2*P_i) + design_stress)) # inner radius
     thickness = radius_o - radius_i
+
     print("Tank thickness:        %5.1f mm" % (thickness*1000))
+
     material = area * thickness
     mass_realism_coefficient = 2 #fudge factor for design mass, includes contribution of tank structural lugs, feed system, stress concentraions, welds, slosh baffles etc.
-    mass = material * Tank['rho'] * mass_realism_coefficient
+    mass = material * tank['rho'] * mass_realism_coefficient
     return mass
 
-m_tank_o = tank_mass(l_o)
-m_tank_f = tank_mass(l_f)
+m_tank_o = tank_mass(l_o, Al)
+m_tank_f = tank_mass(l_f, Tank)
 print("Ox tank mass: . . . . .%5.1f kg" % m_tank_o)
 print("Fuel tank mass:        %5.1f kg" % m_tank_f)
 
 
 dry_mass = sum([m_engine, m_plumb, m_tank_o, m_tank_f])
 print("Dry Mass: . . . . . . .%5.1f kg" % dry_mass)
+print("Wet Mass:              %5.1f kg" % (dry_mass + M_prop))
+print("Propultion mass ratio: %5.1f" % ((dry_mass + M_prop)/dry_mass))
 
 # lox tank cm is in the center of the tank
 cm_tank_o = l_o / 2.0
