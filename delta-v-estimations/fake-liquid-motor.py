@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 from __future__ import print_function
-from math import pi, log
+from math import pi, log, sqrt
 import os
 from sys import platform as _platform
 
@@ -14,11 +14,11 @@ g_0      =     9.80665  # kg.m/s^2     Standard gravity
 
 # Tank Material
 Al    = { 'rho': 2800.0,   # kg/m^3       Density
-          'Sy':    0.270E9} # Pa          Yield strength
+          'Sy':    0.270e9} # Pa          Yield strength
 Steel = { 'rho': 7830.0,   # kg/m^3       Density
-          'Sy':    0.250E9} # Pa          Yield strength
+          'Sy':    0.250e9} # Pa          Yield strength
 CF    = { 'rho': 1550.0,   # kg/m^3       Density
-          'Sy':    0.450E9} # Pa          Yield strength
+          'Sy':    0.450e9} # Pa          Yield strength
 
 # Chemestry
 rho_lox  =   1141.0   # kg/m^3  Desity of LOX
@@ -32,9 +32,9 @@ l_plumb  =      0.350 # m
 gaps     =      0.100 # m
 
 # Variables (Change these!)
-Thrust    =  3000.0    # N       Thrust of engine, assume a value between 1-6 kN
-Burn_time =    45.0    # s       Duration of the burn, assume a value between 30 and 90 s
-Tank      = CF         # Choose from above table, ignore steel
+Thrust    =  2500.0    # N       Thrust of engine, assume a value between 1-6 kN
+Burn_time =    30.0    # s       Duration of the burn, assume a value between 30 and 90 s
+Tank      = Al         # Choose from above table, ignore steel
 
 
 # ### Mass and Flow
@@ -81,15 +81,15 @@ print("System length: . . . . %7.3f m" % length)
 
 def tank_mass(l):
     area = 2*pi*r*l + 2*pi*r*r
-	P_i=3.042E6 # Tank pressure in Pa, assuming pressure fed with regulator (roughly 441 psig)
-	radius_o = r # outer radius, meters
-	fs = 2 # design factor of safety
-	design_stress = Tank['Sy']/fs
-	radius_i = sqrt(design_stress*radius_o^2/(2*P_i + design_stress)) # inner radius
+    P_i=3.042E6 # Tank pressure in Pa, assuming pressure fed with regulator (roughly 441 psig)
+    radius_o = r # outer radius, meters
+    fs = 2 # design factor of safety
+    design_stress = Tank['Sy']/fs
+    radius_i = sqrt(design_stress*radius_o**2/(2*P_i + design_stress)) # inner radius
     thickness = radius_o - radius_i
     print("Tank thickness:        %5.1f mm" % (thickness*1000))
     material = area * thickness
-	mass_realism_coefficient = 2 #fudge factor for design mass, includes contribution of tank structural lugs, feed system, stress concentraions, welds, slosh baffles etc.
+    mass_realism_coefficient = 2 #fudge factor for design mass, includes contribution of tank structural lugs, feed system, stress concentraions, welds, slosh baffles etc.
     mass = material * Tank['rho'] * mass_realism_coefficient
     return mass
 
