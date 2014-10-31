@@ -32,7 +32,7 @@ m_r = masses[0]/masses[-1]
 dv_pure =  g_0 * Isp * log(m_r)
 dv_grav = (g_0 * Isp * log(m_r)) - (g_0 * t_bo)
 
-print("Altitude:        %10.1f [km]"  % (max(altitudes)/1000))
+print("Altitude:        %10.1f [km]"  % (max(altitudes)))
 print("Burnout V:       %10.1f [m/s]" % velocitys[i_t_bo])
 print("GLOW:            %10.1f [kg]"  % masses[0])
 print("Empty Mass:      %10.1f [kg]"  % masses[-1])
