@@ -19,6 +19,7 @@ LFE dev. research (also peer/mentor interview) qustions:
 		fill level detection for LOX?
 		what tank insulation do you use? is there a standard for this?
 		leak test? low gas pressure & snoop? another procedure?
+		is there a restrictor orrifice to the ignitor GOX heat exchanger?
 	
 	FMEA:
 		how do you approach FMEA systematically (do you have idustry mentors for high press. LOX sys)?
@@ -38,8 +39,17 @@ LFE dev. research (also peer/mentor interview) qustions:
 		injector cold flow tests -> quantifying atomization
 		
 	COMBUSTION CHAMBER DESIGN:
+		frozen flow is more conservative, so we use that (is equilibrium more justified for larger engines?)
 		
 	DOWN THE ROAD:
 		flight weighting LOX valve/actuators?
 		why did you go with the welded tanks? why not in-houe fab w/ machined walls and bolted endcaps?
 		what are you doing in terms of slosh/vortex baffeling?
+		open question: is there a better way of doing hardware configuration control than git?
+		
+	TOTALLY UNRELATED:
+		A dedicated web person who understnads Jekyll and git would be good
+		
+		
+		
+		
