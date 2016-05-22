@@ -20,35 +20,35 @@ def simplex_search(f, x_start, max_iter = 100, epsilon = 1E-6, gamma = 5, beta =
 	beta is the expansion coefficient
 	"""
 	
-	#init arrays
+	# Init arrays
 	N = len(x_start)
 	fnew = []
 	xnew = []
 	x = []
 	
-	#generate vertices of initial simplex
+	# Generate vertices of initial simplex
 	a = .75
 	x0 = (x_start)
 	x1 = [x0 + [((N + 1)**0.5 + N - 1.)/(N + 1.)*a, 0.]]
-	x2 = [x0 + [0., ((N + 1)**0.5 - 1.)/(N + 1.)*a]] 
-	x3 = [x0 - [0., ((N + 1)**0.5 - 1.)/(N + 1.)*a]] 
-	x = np.vstack((x1, x2, x3))
+	x2 = [x0 + [0., ((N + 1)**0.5 - 1.)/(N + 1.)*a]]
+	x3 = [x0 - [0., ((N + 1)**0.5 - 1.)/(N + 1.)*a]]
+	x4 = [x0 - [0., ((N + 1)**0.5 - 1.)/(N + 1.)*a]]
+	x5 = [x0 - [0., ((N + 1)**0.5 - 1.)/(N + 1.)*a]]
+	x = np.vstack((x1, x2, x3, x4, x5))
 	print(x)
-	#maybe my issue is here
-
 	
-	#simplex iteration
+	# Simplex iteration
 	while True:
-		#find best, worst and 2nd worst points --> new center point
-		f_run = np.array([f(x[0]), f(x[1]), f(x[2])]).tolist() #func. values at vertices
+		# Find best, worst and 2nd worst points --> new center point
+		f_run = np.array([f(x[0]), f(x[1]), f(x[2])]).tolist() # Func. values at vertices
 		#print(f_run)
-		xw = x[f_run.index(sorted(f_run)[-1])]	#worst point
-		xb = x[f_run.index(sorted(f_run)[0])]	#best point
-		xs = x[f_run.index(sorted(f_run)[-2])]	#2nd worst point
+		xw = x[f_run.index(sorted(f_run)[-1])]	# Worst point
+		xb = x[f_run.index(sorted(f_run)[0])]	# Best point
+		xs = x[f_run.index(sorted(f_run)[-2])]	# 2nd worst point
 		xc = (xb + xs)/N #center point				  
 		xr = 2*xc - xw #reflection point
 		
-		#check cases
+		# Check cases
 		if f(xr) < f(xb): #expansion
 			xnew = 2*xr - xc
 			#xnew = (1 - gamma)*xc - gamma*xr
