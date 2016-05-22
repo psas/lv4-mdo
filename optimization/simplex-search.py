@@ -33,7 +33,7 @@ def simplex_search(f, x_start, max_iter = 100, epsilon = 1E-6, gamma = 5, beta =
 	x2 = [x0 + [0., ((N + 1)**0.5 - 1.)/(N + 1.)*a]] 
 	x3 = [x0 - [0., ((N + 1)**0.5 - 1.)/(N + 1.)*a]] 
 	x = np.vstack((x1, x2, x3))
-	print(x)
+	#print(x)
 	#maybe my issue is here
 
 	
@@ -50,8 +50,7 @@ def simplex_search(f, x_start, max_iter = 100, epsilon = 1E-6, gamma = 5, beta =
 		
 		#check cases
 		if f(xr) < f(xb): #expansion
-			xnew = 2*xr - xc
-			#xnew = (1 - gamma)*xc - gamma*xr
+			xnew = (1 + gamma)*xc - gamma*xr
 			#print('a', f(xr), f(xb)) #for debugging
 		elif f(xr) > f(xw): #contraction 1
 			xnew = (1 - beta)*xc + beta*xw
@@ -61,9 +60,6 @@ def simplex_search(f, x_start, max_iter = 100, epsilon = 1E-6, gamma = 5, beta =
 			#print('c', f(xs), f(xr), f(xw))
 		else:
 			xnew = xr
-			
-			#print('d', f(xr))
-			#my xnews are total shit! They go in the wrong direction!
 		
 		#replace vertices
 		"""
@@ -78,9 +74,7 @@ def simplex_search(f, x_start, max_iter = 100, epsilon = 1E-6, gamma = 5, beta =
 		#break is any termination critera satisfied
 		if len(fnew) == max_iter or term_check(xb, xc, xs, xnew, N) <= epsilon:
 			return f(x[f_run.index(sorted(f_run)[0])]), x[f_run.index(sorted(f_run)[0])], len(fnew)
-		"""if len(fnew)>1 and fnew[-1]-fnew[-2]<epsilon:
-			return f(x[f_run.index(sorted(f_run)[0])]), x[f_run.index(sorted(f_run)[0])], len(fnew)"""
-
+		
 def term_check(xb, xc, xs, xnew, N): #the termination critera
 	return m.sqrt(((f(xb) - f(xc))**2 + (f(xnew) - f(xc))**2 + (f(xs) - f(xc))**2)/(N + 1))
 
@@ -95,15 +89,3 @@ def f(z): #the objective function
 print('f = ', f)
 print('x = ', x)
 print('iterations = ', iter)
-
-
-#graphically verify the minimum
-x = np.arange(-10,10,.1)
-y = np.arange(-10,10,.1)
-(x, y) = np.meshgrid(x, y)
-z = (1 - x)**2 + (2 - y)**2
-fig = plt.figure()
-ax = fig.gca(projection='3d')
-ax.plot_surface(x, y, z, label='parametric curve', cmap=cm.jet, linewidth=0.2)
-#ax.legend()
-plt.show()
