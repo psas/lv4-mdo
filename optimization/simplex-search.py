@@ -75,12 +75,16 @@ def term_check(xb, xc, xs, xnew, N): # The termination critera
 # Testing
 def f(x): # The pseudo-objective Function
     rp = 100
-    (L, dia, alt, v, a, t, F, D, Ma, rho, p_a, T_a, TWR, ex, Ve, A_t, dV1, m, S_crit, q, m_prop) = trajectory(L, mdot, dia, p_e, p_ch)#change inputs to indices of x (e.g. design variables)
+    x[0] = L
+    x[1] = mdot
+    x[2] = dia
+    x[3] = p_e
+    (L, dia, alt, v, a, t, F, D, Ma, rho, p_a, T_a, TWR, ex, Ve, A_t, dV1, m, S_crit, q, m_prop) = trajectory(L, mdot, dia, p_e) #change inputs to indices of x (e.g. design variables)
     obj_func = m[0] + rp*(max(0, (L+2)/(dia*0.0254) - 15)**2 + max(0, -TWR + 2)**2 + max(0, -S_crit + 0.35)**2 + max(0, -alt +100000)**2 + max(0, max(a)/9.81 - 15)**2)
     return obj_func
 
 # Print results
-(f, x, iter) = simplex_search(f, np.array([0,0]))
+(f, x, iter) = simplex_search(f, np.array([1.5, 0.453592 * 0.9 * 4, 8, 50]))
 # print('\n')
 print('f = ', f)
 print('x = ', x)
