@@ -20,10 +20,11 @@ def simplex_search(f, x_start, max_iter = 100, epsilon = 1E-6, gamma = 5, beta =
     
     # Init Arrays
     
-    N = len(x_start) # Amount of Design Variables
-    fnew = []        # Empty Function Matrix
-    xnew = []        # Empty Re-write for Design Variables
-    x = []           # Empty x Matrix
+    N = len(x_start) # Amount of design variables
+    fnew = []        # Empty function matrix
+    xnew = []        # Empty re-write for design variables
+    x    = []        # Empty x matrix
+    C    = []        # Empty center point matrix
     
     # Generate vertices of initial simplex
     
@@ -45,8 +46,14 @@ def simplex_search(f, x_start, max_iter = 100, epsilon = 1E-6, gamma = 5, beta =
         #print(f_run)
         xw = x[f_run.index(sorted(f_run)[-1])] # Worst point
         xb = x[f_run.index(sorted(f_run)[0])]  # Best point
-        xs = x[f_run.index(sorted(f_run)[-2])] # 2nd worst point
-        xc = (xb + xs)/N                       # Center point  
+        xs = x[f_run.index(sorted(f_run)[-2])] # 2nd worst point        
+        # xc = (xb + xs)/N                     # Center point
+        for i in range(0, N):
+            if f(x[i]) == f(xw):
+                C[i] = 0
+            else:
+                C[i] = x[i]
+        xc = (sum(C)/N)                        # Center point
         xr = 2*xc - xw                         # Reflection point
         
         # Check cases
