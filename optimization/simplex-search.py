@@ -30,13 +30,12 @@ def simplex_search(f, x_start, max_iter = 100, epsilon = 1E-6, gamma = 5, beta =
     a = .75          # Step Size Alpha
     x0 = (x_start)   # x0 Value for x Matrix
     # x0 = np.stack(x_start[0],x_start[1],x_start[2],x_start[3],x_start[4], 0.)
-    x1 = [x0 + [((N + 1)**0.5 + N - 1.)/(N + 1.)*a, 0., 0., 0., 0.]]
-    x2 = [x0 + [0., ((N + 1)**0.5 - 1.)/(N + 1.)*a, 0., 0., 0.]]
-    x3 = [x0 - [0., 0., ((N + 1)**0.5 - 1.)/(N + 1.)*a, 0., 0.]]
-    x4 = [x0 - [0., 0., 0., ((N + 1)**0.5 - 1.)/(N + 1.)*a, 0.]]
-    x4 = [x0 - [0., 0., 0., 0., ((N + 1)**0.5 - 1.)/(N + 1.)*a]]
-    x = np.vstack((x1, x2, x3, x4, x5))
-    print(x)
+    x1 = [x0 + [((N + 1)**0.5 + N - 1.)/(N + 1.)*a, 0., 0., 0.]]
+    x2 = [x0 + [0., ((N + 1)**0.5 - 1.)/(N + 1.)*a, 0., 0.]]
+    x3 = [x0 + [0., 0., ((N + 1)**0.5 - 1.)/(N + 1.)*a, 0.]]
+    x4 = [x0 + [0., 0., 0., ((N + 1)**0.5 - 1.)/(N + 1.)*a]]
+    x = np.vstack((x0, x1, x2, x3, x4))
+    #print(x)
 
     # Simplex iteration
 
