@@ -1,9 +1,7 @@
-class sim: #A simple forward Euler integration for rocket trajectories
-#-Erin Schmidt
+from math import sqrt, pi, exp, log, cos
+import numpy as np
 
-    from math import sqrt, pi, exp, log, cos
-    import numpy as np
-    
+class sim: #A simple forward Euler integration for rocket trajectories
     def dry_mass(L, dia):
         m_avionics = 3.3
         m_recovery = 4
