@@ -101,3 +101,4 @@ print('\n')
 print('f = ', f)
 print('x = ', x)
 print('iterations = ', iter)
+
