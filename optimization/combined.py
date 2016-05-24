@@ -144,7 +144,7 @@ class optim: # Nelder-Mead simplex search
     import math as m
     import numpy as np
     
-    def simplex_search(f, x_start, max_iter = 100, epsilon = 1E-6, gamma = 5, beta = 0.5, rp=100):
+    def simplex_search(f, x_start, max_iter = 100, epsilon = 1E-4, gamma = 5, beta = 0.5, rp=100):
         
         """
         parameters of the function:
@@ -201,10 +201,10 @@ class optim: # Nelder-Mead simplex search
             
             # Replace Vertices
             x[f_run.index(sorted(f_run)[-1])] = xnew
-            # x[1] = xb
-            # x[2] = xs
+            #x[f_run.index(sorted(f_run)[1])] = xb
+            #x[f_run.index(sorted(f_run)[2])] = xs
             fnew.append(f(xnew, rp))
-            # print('Current optimum = ', fnew[-1])
+            print('Current optimum = ', fnew[-1])
             
             # Break if any termination critera is satisfied
             if len(fnew) == max_iter or optim.term_check(x, xc, xw, N, rp) <= epsilon:
@@ -236,9 +236,10 @@ from math import sqrt, pi, exp, log, cos
 import numpy as np
 import math as m
 
-X0 = [2, 0.453592 * 0.9 * 5, 10, 80]
+X0 = [2, 0.453592 * 0.9 * 3, 6, 50]
 #X0 = [.1,.1,.1,.1]
-(f, x, iter, L, dia, alt, v, a, t, F, D, Ma, rho, p_a, T_a, TWR, ex, Ve, A_t, dV1, m, S_crit, q, m_prop) = optim.simplex_search(optim.f, np.array(X0), max_iter = 100, rp =10)
+max_iter = 100
+(f, x, iter, L, dia, alt, v, a, t, F, D, Ma, rho, p_a, T_a, TWR, ex, Ve, A_t, dV1, m, S_crit, q, m_prop) = optim.simplex_search(optim.f, np.array(X0), max_iter, rp =50)
 print('\n')
 print('f = ', f)
 print('m[0] = ', m[0])
