@@ -139,3 +139,62 @@ class sim: #A simple forward Euler integration for rocket trajectories
                 q = np.array(q)
                 return L, dia, x, v, a, t, F, D, Ma, rho, p_a, T_a, TWR, ex, Ve, A_t, dV1, m, S_crit, q, m_prop
  
+if __name__ == '__main__': # Testing
+    X0 = [5,3,2,50]
+    L = X0[0]
+    dia = X0[2]
+    mdot = X0[1]
+    p_e = X0[3]
+    (L, dia, alt, v, a, t, F, D, Ma, rho, p_a, T_a, TWR, ex, Ve, A_t, dV1, m, S_crit, q, m_prop) = sim.trajectory(L, mdot, dia, p_e)
+    
+    import matplotlib
+    import matplotlib.pyplot as plt
+    import pylab
+    #%config InlineBackend.figure_formats=['svg']
+    #%matplotlib inline
+    
+    pylab.rcParams['figure.figsize'] = (10.0, 10.0)
+    f, (ax1, ax2, ax3, ax4, ax6, ax7) = plt.subplots(6, sharex=True)
+    #plt.xlim(0, 1.8)
+    ax1.plot(t, alt/1000)
+    ax1.set_ylabel("Altitude (km)")
+    ax1.yaxis.major.locator.set_params(nbins=6)
+    ax1.set_title('LV4 Trajectory')
+    ax2.plot(t, v)
+    ax2.yaxis.major.locator.set_params(nbins=6)
+    ax2.set_ylabel("Velocity (m/s)")
+    ax3.plot(t, a/9.81)
+    ax3.yaxis.major.locator.set_params(nbins=10)
+    ax3.set_ylabel("Acceleration/g0")
+    ax4.plot(t, F/1000)
+    ax4.yaxis.major.locator.set_params(nbins=6)
+    ax4.set_ylabel("Thrust (kN)")
+    ax6.plot(t, q/1000)
+    ax6.yaxis.major.locator.set_params(nbins=6)
+    ax6.set_ylabel("Dynamic Pressure (kPa)")
+    ax7.plot(t, Ma)
+    ax7.yaxis.major.locator.set_params(nbins=6) 
+    ax7.set_ylabel("Mach number")
+    ax7.set_xlabel("t (s)")
+    plt.show()
+    
+    print('altitude at apogee = {0:.1f} km'.format(alt[-1]/1000))
+    print('mission time at apogee = {0:.1f} s'.format(t[-1]))
+    print('TWR at lift off (check TWR > 1) = {0:.2f}'.format(TWR))
+    print('design total propellant mass = {0:.3f}'.format(m_prop[0]))
+    print('design thrust (sea level) = {0:.1f} kN'.format(F[0]/1000))
+    j = 0
+    for i in F:
+        if i == 0:
+            fdex = j
+            break
+        j += 1
+    print('design thrust (vacuum) = {0:.1f} kN'.format(F[fdex - 1]/1000))
+    print('design burn time = {} s'.format(fdex))
+    print('design expansion ratio = {0:.1f}'.format(ex))
+    print('design throat area = {0:.1f} in^2'.format(A_t/0.0254**2))
+    print('design isp = {0:.1f} s'.format(Ve/9.81))
+    print('design GLOW = {0:.1f} kg'.format(m[0]))
+    print('L/D ratio (check < 15) = {0:.2f}'.format((L+2)/(dia*0.0254)))
+    print('Sommerfield criterion (check pe/pa >= 0.3) = {0:.1f}'.format(S_crit))
+    print('design dV = {} km/s c.f. required potential energy est = {} km/s'.format(dV1, sqrt(2*9.81*alt[-1])/1000))
