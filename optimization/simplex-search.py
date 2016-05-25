@@ -67,7 +67,7 @@ class simplex: # Nelder-Mead simplex search
             # Break if any termination critera is satisfied
             if len(fnew) == max_iter or simplex.term_check(x, xc, xw, N, rp) <= epsilon:
                 (L, dia, alt, v, a, t, F, D, Ma, rho, p_a, T_a, TWR, ex, Ve, A_t, dV1, m, S_crit, q, m_prop) = sim.trajectory(xb[0], xb[1], xb[2], xb[3])
-                return f(x[f_run.index(sorted(f_run)[0])], rp), x[f_run.index(sorted(f_run)[0])], len(fnew), L, dia, alt, v, a, t, F, D, Ma, rho, p_a, T_a, TWR, ex, Ve, A_t, dV1, m, S_crit, q, m_prop
+                return f(x[f_run.index(sorted(f_run)[0])], rp), x[f_run.index(sorted(f_run)[0])], len(fnew)
             
     def term_check(x, xc, xw, N, rp): # Termination critera
         M = [0]*N
@@ -76,7 +76,7 @@ class simplex: # Nelder-Mead simplex search
                 M[i] = 0
             else:
                 M[i] = (f(x[i], rp) - f(xc, rp))**2
-        # return m.sqrt(((f(xb) - f(xc))**2 + (f(xnew) - f(xc))**2 + (f(xs) - f(xc))**2 + ()**2)/(N + 1))
+        #return m.sqrt(((f(xb) - f(xc))**2 + (f(xnew) - f(xc))**2 + (f(xs) - f(xc))**2)/(N + 1))
         return m.sqrt(sum(M)/(N+1))
         
 # Pseudo-objective function
@@ -98,9 +98,10 @@ if __name__ == '__main__': # Testing
     
     #X0 = [2, 0.453592 * 0.9 * 3, 6, 50]
     X0 = [5,3,2,50]
-    max_iter = 20
-    rp = 25
-    (f, x, iter, L, dia, alt, v, a, t, F, D, Ma, rho, p_a, T_a, TWR, ex, Ve, A_t, dV1, m, S_crit, q, m_prop) = simplex.search(f, np.array(X0), max_iter, rp)
+    max_iter = 25
+    rp = 250
+    (f, x, iter) = simplex.search(f, np.array(X0), max_iter, rp)
+    (L, dia, alt, v, a, t, F, D, Ma, rho, p_a, T_a, TWR, ex, Ve, A_t, dV1, m, S_crit, q, m_prop) = sim.trajectory(x[0], x[1], x[2], x[3])
     print('\n')
     print('f = ', f)
     print('m[0]_opt = ', m[0])

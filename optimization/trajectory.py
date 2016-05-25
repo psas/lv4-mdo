@@ -140,10 +140,10 @@ class sim: #A simple forward Euler integration for rocket trajectories
                 return L, dia, x, v, a, t, F, D, Ma, rho, p_a, T_a, TWR, ex, Ve, A_t, dV1, m, S_crit, q, m_prop
  
 if __name__ == '__main__': # Testing
-    X0 = [5,3,2,50]
+    X0 = [2, 0.453592 * 0.9 * 3, 6, 50]
     L = X0[0]
-    dia = X0[2]
     mdot = X0[1]
+    dia = X0[2]
     p_e = X0[3]
     (L, dia, alt, v, a, t, F, D, Ma, rho, p_a, T_a, TWR, ex, Ve, A_t, dV1, m, S_crit, q, m_prop) = sim.trajectory(L, mdot, dia, p_e)
     
