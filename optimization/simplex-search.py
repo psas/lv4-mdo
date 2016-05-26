@@ -85,7 +85,7 @@ def f(x, rp=50):
     dia = x[2] # Rocket diameter (in)
     p_e = x[3]  # Pressure (kPa)
     (alt, v, a, t, F, D, Ma, rho, p_a, T_a, TWR, ex, Ve, A_t, dV1, m, S_crit, q, m_prop) = sim.trajectory(L, mdot, dia, p_e)
-    obj_func = m[0] + rp*(max(0, (L+2)/(dia*0.0254) - 15)**2 + max(0, -TWR + 2)**2 + max(0, -S_crit + 0.35)**2 + max(0, -alt[-1] + 100000)**2 + max(0, max(abs(a))/9.81 - 15)**2)   
+    obj_func = m[0] + rp*(max(0, (L+2)/(dia*0.0254) - 10)**2 + max(0, -TWR + 2)**2 + max(0, -S_crit + 0.35)**2 + max(0, -alt[-1] + 100000)**2 + max(0, max(abs(a))/9.81 - 15)**2)   
     #obj_func = m[0] #+ rp*(max(0, -alt[-1] + 100000)**2)    
     return obj_func
 
@@ -96,8 +96,8 @@ if __name__ == '__main__': # Testing
     from math import sqrt, pi, exp, log, cos
     import math as m
     
-    #X0 = np.array([1, 0.453592 * 0.9 * 4, 12, 50])
-    X0 = np.array([2, 0.453592 * 0.9 * 6, 8, 50])
+    X0 = np.array([1, 0.453592 * 0.9 * 4, 12, 50])
+    #X0 = np.array([2, 0.453592 * 0.9 * 6, 8, 50])
     """max_iter = 200
     rp = 50
     gamma = 6
@@ -106,12 +106,12 @@ if __name__ == '__main__': # Testing
     (f, x, it) = search(f, np.array(X0), max_iter, gamma, beta, rp, a)
     """
     
-    from scipy.optimize import minimize
+    from scipy.optimize import minimize, basinhopping
     #res = optimize.basinhopping(f, X0)    
     res = minimize(f, X0, method='nelder-mead')    
     
     
-    (alt, v, a, t, F, D, Ma, rho, p_a, T_a, TWR, ex, Ve, A_t, dV1, m, S_crit, q, m_prop) = sim.trajectory(res.x[0], res.x[1], res.x[2], res.x[3])   
+    (alt, v, a, t, F, D, Ma, rho, p_a, T_a, TWR, ex, Ve, A_t, dV1, m, S_crit, q, m_prop) = sim.trajectory(res.x[0], res.x[1], res.x[2], res.x[3], 500)   
     print('\n')
     
     import matplotlib
@@ -120,10 +120,10 @@ if __name__ == '__main__': # Testing
     #%config InlineBackend.figure_formats=['svg']
     #%matplotlib inline
     
-    L = x[0]
-    mdot = x[1]
-    dia = x[2]
-    p_e = x[3]
+    L = res.x[0]
+    mdot = res.x[1]
+    dia = res.x[2]
+    p_e = res.x[3]
     
     pylab.rcParams['figure.figsize'] = (10.0, 10.0)
     f, (ax1, ax2, ax3, ax4, ax6, ax7) = plt.subplots(6, sharex=True)
@@ -155,7 +155,7 @@ if __name__ == '__main__': # Testing
     print('-----------------------------')
     print('x = ', res.x)
     print('x0 = ', X0)
-    print('iterations = ', it)
+    print('iterations = ', res.nit)
     print('design GLOW = {0:.1f} kg'.format(m[0]))
     print('x0 GLOW = ', sim.trajectory(X0[0], X0[1], X0[2], X0[3])[-4][0])
     

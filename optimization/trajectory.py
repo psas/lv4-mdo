@@ -140,12 +140,13 @@ class sim: #A simple forward Euler integration for rocket trajectories
                 return x, v, a, t, F, D, Ma, rho, p_a, T_a, TWR, ex, Ve, A_t, dV1, m, S_crit, q, m_prop
  
 if __name__ == '__main__': # Testing
-    X0 = [1.5, 0.453592 * 0.9 * 5, 10, 50]
+    X0 = [1.35502401,   2.29534546,   8.79278916,  59.48224811, 500]
     L = X0[0]
     mdot = X0[1]
     dia = X0[2]
     p_e = X0[3]
-    (alt, v, a, t, F, D, Ma, rho, p_a, T_a, TWR, ex, Ve, A_t, dV1, m, S_crit, q, m_prop) = sim.trajectory(L, mdot, dia, p_e)
+    p_ch = X0[4]
+    (alt, v, a, t, F, D, Ma, rho, p_a, T_a, TWR, ex, Ve, A_t, dV1, m, S_crit, q, m_prop) = sim.trajectory(L, mdot, dia, p_e, p_ch)
     
     import matplotlib
     import matplotlib.pyplot as plt
