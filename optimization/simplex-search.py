@@ -1,7 +1,7 @@
 #class simplex: # Nelder-Mead simplex search
 import numpy as np
 
-def search(f, x_start, max_iter = 100, epsilon = 1E-4, gamma = 5, beta = 0.5, rp=100, a=10):
+def search(f, x_start, max_iter = 100, epsilon = 1E-6, gamma = 5, beta = 0.5, rp=100, a=10):
     
     """
     parameters of the function:
@@ -55,25 +55,25 @@ def search(f, x_start, max_iter = 100, epsilon = 1E-4, gamma = 5, beta = 0.5, rp
         
         # Replace Vertices
         x[f_run.index(sorted(f_run)[-1])] = xnew
-        #x[f_run.index(sorted(f_run)[1])] = xb
-        #x[f_run.index(sorted(f_run)[2])] = xs
+        x[f_run.index(sorted(f_run)[1])] = xb
+        x[f_run.index(sorted(f_run)[2])] = xs
         fb.append(f(xb, rp))
         print('Current optimum = ', fb[-1])
         
         # Break if any termination critera is satisfied
-        if len(fb) == max_iter: #or term_check(x, xc, xw, N, rp) <= epsilon:
+        if len(fb) == max_iter: # or term_check(x, xc, xw, N, rp, f_run) <= epsilon:
             (alt, v, a, t, F, D, Ma, rho, p_a, T_a, TWR, ex, Ve, A_t, dV1, m, S_crit, q, m_prop) = sim.trajectory(xb[0], xb[1], xb[2], xb[3])
             return f(x[f_run.index(sorted(f_run)[0])], rp), x[f_run.index(sorted(f_run)[0])], len(fb)
         
-def term_check(x, xc, xw, N, rp): # Termination critera
-    M = [0]*N
-    for i in range(0, N):
-        if f(x[i], rp) == f(xw, rp): # Avoid worst point
+def term_check(x, xc, xw, N, rp, f_run): # Termination critera
+    M = [0]*(N + 1)
+    for i in range(0, N + 1):
+        if i == f_run.index(sorted(f_run)[-1]): # Avoid worst point
             M[i] = 0
         else:
             M[i] = (f(x[i], rp) - f(xc, rp))**2
     #return m.sqrt(((f(xb) - f(xc))**2 + (f(xnew) - f(xc))**2 + (f(xs) - f(xc))**2)/(N + 1))
-    return m.sqrt(sum(M)/(N+1))
+    return m.sqrt(sum(M)/(N))
         
 # Pseudo-objective function
 def f(x, rp): 
@@ -82,8 +82,7 @@ def f(x, rp):
     dia = x[2] # Rocket diameter (in)
     p_e = x[3]  # Pressure (kPa)
     (alt, v, a, t, F, D, Ma, rho, p_a, T_a, TWR, ex, Ve, A_t, dV1, m, S_crit, q, m_prop) = sim.trajectory(L, mdot, dia, p_e)
-    obj_func = m[0] + rp*(max(0, (L+2)/(dia*0.0254) - 15)**2 + max(0, -TWR + 2)**2 + max(0, -S_crit + 0.35)**2 + max(0, -alt[-1] + 100000)**2 + max(0, max(abs(a))/9.81 - 15)**2)
-    #print(100*max(0, (L+2)/dia - 15)**2)    
+    obj_func = m[0] + rp*(max(0, (L+2)/(dia*0.0254) - 15)**2 + max(0, -TWR + 2)**2 + max(0, -S_crit + 0.35)**2 + max(0, -alt[-1] + 100000)**2 + max(0, max(abs(a))/9.81 - 15)**2)   
     return obj_func
 
 # Results
@@ -93,13 +92,13 @@ if __name__ == '__main__': # Testing
     from math import sqrt, pi, exp, log, cos
     import math as m
     
-    #X0 = [1, 0.453592 * 0.9 * 5, 14, 150]
+    #X0 = [1, 0.453592 * 0.9 * 4, 12, 50]
     X0 = [2, 0.453592 * 0.9 * 6, 8, 50]
-    max_iter = 100
-    rp = 2
-    gamma = 5
-    beta = .5
-    a = .5
+    max_iter = 200
+    rp = 100
+    gamma = 2
+    beta = .2
+    a = 10
     (f, x, iter) = search(f, np.array(X0), max_iter,  rp)
     (alt, v, a, t, F, D, Ma, rho, p_a, T_a, TWR, ex, Ve, A_t, dV1, m, S_crit, q, m_prop) = sim.trajectory(x[0], x[1], x[2], x[3])   
     print('\n')
