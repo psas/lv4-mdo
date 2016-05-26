@@ -80,12 +80,13 @@ class sim: #A simple forward Euler integration for rocket trajectories
         Ra = 287.1 #avg. specific gas constant (dry air)
     
         #LV design variables
-        dia = dia*0.0254 #convert in to m
+        dia *= 0.0254 #convert in to m
         A = pi*(dia/2)**2 #airframe frontal area projected onto a circle of raduis r
         m_dry = sim.dry_mass(L, A) #dry mass, call from function
         mdot = mdot #mass flow rate
-        p_ch = p_ch*6894.76 #chamber pressure, convert psi to Pa
-        p_e = p_e*1000 #exit pressure, convert kPa to Pa
+        mdot_old = mdot
+        p_ch *= 6894.76 #chamber pressure, convert psi to Pa
+        p_e *= 1000 #exit pressure, convert kPa to Pa
     
     
         #initial conditions
@@ -104,7 +105,7 @@ class sim: #A simple forward Euler integration for rocket trajectories
         Ma = [0]
         q = [0]
         r = (m_prop[0] + m_dry)/m_dry #mass ratio
-        dV1 = Ve*log(r)/1000 #Tsiolkovsky's bane
+        dV1 = 'abcd' #Ve*log(r)/1000 #Tsiolkovsky's bane
         
         while True:
             p_a.append(sim.std_at(x[-1])[0])
@@ -114,7 +115,6 @@ class sim: #A simple forward Euler integration for rocket trajectories
                 (Fr, A_t, A_e, Ve) = sim.thrust(x[-1], p_ch, T_ch, p_e, ke, Re, mdot)
                 F.append(Fr)
                 m_prop.append(m_prop[-1] - mdot*dt)
-                mdot_old = mdot
             else:
                 Ve = sim.thrust(x[-1], p_ch, T_ch, p_e, ke, Re, mdot_old)[3]
                 F.append(0)
@@ -137,15 +137,15 @@ class sim: #A simple forward Euler integration for rocket trajectories
                 F = np.array(F)
                 D = np.array(D)
                 q = np.array(q)
-                return L, dia, x, v, a, t, F, D, Ma, rho, p_a, T_a, TWR, ex, Ve, A_t, dV1, m, S_crit, q, m_prop
+                return x, v, a, t, F, D, Ma, rho, p_a, T_a, TWR, ex, Ve, A_t, dV1, m, S_crit, q, m_prop
  
 if __name__ == '__main__': # Testing
-    X0 = [2, 0.453592 * 0.9 * 3, 6, 50]
+    X0 = [1.5, 0.453592 * 0.9 * 5, 10, 50]
     L = X0[0]
     mdot = X0[1]
     dia = X0[2]
     p_e = X0[3]
-    (L, dia, alt, v, a, t, F, D, Ma, rho, p_a, T_a, TWR, ex, Ve, A_t, dV1, m, S_crit, q, m_prop) = sim.trajectory(L, mdot, dia, p_e)
+    (alt, v, a, t, F, D, Ma, rho, p_a, T_a, TWR, ex, Ve, A_t, dV1, m, S_crit, q, m_prop) = sim.trajectory(L, mdot, dia, p_e)
     
     import matplotlib
     import matplotlib.pyplot as plt
