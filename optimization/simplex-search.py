@@ -1,7 +1,7 @@
 #class simplex: # Nelder-Mead simplex search
 import numpy as np
 
-def search(f, x_start, max_iter = 100, epsilon = 1E-6, gamma = 5, beta = 0.5, rp=100, a=10):
+def search(f, x_start, max_iter = 100, gamma = 5, beta = 0.5, rp=100, a=10, epsilon = 1E-6):
     
     """
     parameters of the function:
@@ -42,21 +42,23 @@ def search(f, x_start, max_iter = 100, epsilon = 1E-6, gamma = 5, beta = 0.5, rp
                 C[i] = x[i].tolist()
         xc = sum(np.array(C))/(N) # Center point
         xr = 2*xc - xw # Reflection point
+        fxr = f(xr, rp)
+        fxc = f(xc, rp)
         
         # Check cases
-        if f(xr, rp) < f(xb, rp): # Expansion
+        if fxr < f_run[f_run.index(sorted(f_run)[0])]: #f(xr, rp) < f(xb, rp): # Expansion
             xnew = (1 + gamma)*xc - gamma*xr
-        elif f(xr, rp) > f(xw, rp): # Contraction 1
+        elif fxr > f_run[f_run.index(sorted(f_run)[-1])]: #f(xr, rp) > f(xw, rp): # Contraction 1
             xnew = (1 - beta)*xc + beta*xw
-        elif f(xs, rp) < f(xr, rp) and f(xr, rp) < f(xw, rp): # Contraction 2
+        elif f_run[f_run.index(sorted(f_run)[-2])] < fxr and fxr < f_run[f_run.index(sorted(f_run)[-1])]: #f(xs, rp) < f(xr, rp) and f(xr, rp) < f(xw, rp): # Contraction 2
             xnew = (1 + beta)*xc - beta*xw
         else:
             xnew = xr
         
         # Replace Vertices
         x[f_run.index(sorted(f_run)[-1])] = xnew
-        x[f_run.index(sorted(f_run)[1])] = xb
-        x[f_run.index(sorted(f_run)[2])] = xs
+        #x[f_run.index(sorted(f_run)[1])] = xb
+        #x[f_run.index(sorted(f_run)[2])] = xs
         fb.append(f(xb, rp))
         print('Current optimum = ', fb[-1])
         
@@ -65,24 +67,26 @@ def search(f, x_start, max_iter = 100, epsilon = 1E-6, gamma = 5, beta = 0.5, rp
             (alt, v, a, t, F, D, Ma, rho, p_a, T_a, TWR, ex, Ve, A_t, dV1, m, S_crit, q, m_prop) = sim.trajectory(xb[0], xb[1], xb[2], xb[3])
             return f(x[f_run.index(sorted(f_run)[0])], rp), x[f_run.index(sorted(f_run)[0])], len(fb)
         
-def term_check(x, xc, xw, N, rp, f_run): # Termination critera
+def term_check(N, rp, f_run, fxc): # Termination critera
     M = [0]*(N + 1)
     for i in range(0, N + 1):
         if i == f_run.index(sorted(f_run)[-1]): # Avoid worst point
             M[i] = 0
         else:
-            M[i] = (f(x[i], rp) - f(xc, rp))**2
+            M[i] = (f_run[i] - fxc)**2
     #return m.sqrt(((f(xb) - f(xc))**2 + (f(xnew) - f(xc))**2 + (f(xs) - f(xc))**2)/(N + 1))
-    return m.sqrt(sum(M)/(N))
+    return m.sqrt(sum(M)/N)
         
 # Pseudo-objective function
-def f(x, rp): 
+def f(x, rp=50):
+    #x = np.array(x)
     L = x[0]   # Rocket length (m)
     mdot = x[1] # Propellant mass flow rate (kg/s)
     dia = x[2] # Rocket diameter (in)
     p_e = x[3]  # Pressure (kPa)
     (alt, v, a, t, F, D, Ma, rho, p_a, T_a, TWR, ex, Ve, A_t, dV1, m, S_crit, q, m_prop) = sim.trajectory(L, mdot, dia, p_e)
     obj_func = m[0] + rp*(max(0, (L+2)/(dia*0.0254) - 15)**2 + max(0, -TWR + 2)**2 + max(0, -S_crit + 0.35)**2 + max(0, -alt[-1] + 100000)**2 + max(0, max(abs(a))/9.81 - 15)**2)   
+    #obj_func = m[0] #+ rp*(max(0, -alt[-1] + 100000)**2)    
     return obj_func
 
 # Results
@@ -92,21 +96,24 @@ if __name__ == '__main__': # Testing
     from math import sqrt, pi, exp, log, cos
     import math as m
     
-    #X0 = [1, 0.453592 * 0.9 * 4, 12, 50]
-    X0 = [2, 0.453592 * 0.9 * 6, 8, 50]
-    max_iter = 200
-    rp = 100
-    gamma = 2
-    beta = .2
-    a = 10
-    (f, x, iter) = search(f, np.array(X0), max_iter,  rp)
-    (alt, v, a, t, F, D, Ma, rho, p_a, T_a, TWR, ex, Ve, A_t, dV1, m, S_crit, q, m_prop) = sim.trajectory(x[0], x[1], x[2], x[3])   
-    print('\n')
-    print('x = ', x)
-    print('x0 = ', X0)
-    print('iterations = ', iter)
+    #X0 = np.array([1, 0.453592 * 0.9 * 4, 12, 50])
+    X0 = np.array([2, 0.453592 * 0.9 * 6, 8, 50])
+    """max_iter = 200
+    rp = 50
+    gamma = 6
+    beta = .5
+    a = 5
+    (f, x, it) = search(f, np.array(X0), max_iter, gamma, beta, rp, a)
+    """
     
-
+    from scipy.optimize import minimize
+    #res = optimize.basinhopping(f, X0)    
+    res = minimize(f, X0, method='nelder-mead')    
+    
+    
+    (alt, v, a, t, F, D, Ma, rho, p_a, T_a, TWR, ex, Ve, A_t, dV1, m, S_crit, q, m_prop) = sim.trajectory(res.x[0], res.x[1], res.x[2], res.x[3])   
+    print('\n')
+    
     import matplotlib
     import matplotlib.pyplot as plt
     import pylab
@@ -146,6 +153,9 @@ if __name__ == '__main__': # Testing
     print('\n')
     print('MINIMIZED VALUE')
     print('-----------------------------')
+    print('x = ', res.x)
+    print('x0 = ', X0)
+    print('iterations = ', it)
     print('design GLOW = {0:.1f} kg'.format(m[0]))
     print('x0 GLOW = ', sim.trajectory(X0[0], X0[1], X0[2], X0[3])[-4][0])
     
@@ -176,3 +186,4 @@ if __name__ == '__main__': # Testing
     print('design throat area = {0:.1f} in^2'.format(A_t/0.0254**2))
     print('design isp = {0:.1f} s'.format(Ve/9.81))
     #print('design dV = {} km/s c.f. required potential energy est = {} km/s'.format(dV1, sqrt(2*9.81*alt[-1])/1000))
+    
