@@ -1,0 +1,27 @@
+# Ian B Zabel Barrowman Method Application
+
+import math as m
+import numpy as np
+
+Ln =   # Nose Length               (m)
+d  =   # Base of Nose Diameter     (m)
+df = 0 # Transition Front Diameter (m)
+dr = 0 # Transition End Diameter   (m)
+Lt = 0 # Transition Length         (m)
+xp = 0 # Tip to Transition Length  (m)
+Cr =   # Fin Root Chord            (m)
+Ct =   # Fin Tip Chord             (m)
+S  =   # Fin Semi-Span             (m)
+Lf =   # length of Fin to Midchord (m)
+R  =   # Aft Radius                (m)
+xr =   # Distance ___              (m)
+xb =   # Distance ___              (m)
+N  =   # Number of Fins            (dimless)
+xn = 0.47*Ln # For Ogive ___       (dimless)
+Cnn = 2 # (?)
+
+Cnt = 2*((dr/d)^2 - (df/d)^2) # Conical Transition Term (?)
+xt = xp + (Lt/3)*(1 + (1 - df/dr)/(1 - (df/dr)^2)) # More Conical Transition Terms (?)
+Cnf = (1 + R/(S + R))*(4*N*(S/d)^2 / (1 + m.sqrt(1 + (2*Lf/(Cr + Ct))^2))) # Fin Terms (?)
+xf = xb + (xr/3)*(Cr + 2*Ct)/(Cr + Ct) + (1/6)*(Cr + Ct + (Cr*Ct)/(Cr + Ct))
+xcp = (Cnn*xn + Cnt*xt + Cnf*xf)/(Cnn + Cnt + Cnf) # Center of Pressure Distance from Tip (m)

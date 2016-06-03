@@ -1,0 +1,66 @@
+clear
+clc
+hold off
+% Ian Zabel
+
+D = 1.11; % Set D Constant for Calculation
+S = [];   % Blank Matrix to Fill With Sigma Values
+i = 0;    % Counter Initial Value
+K = S;    % Blank Matrix #2 to Fill With X Values
+j = [0.05:0.01:0.15];
+
+%% For Loop for Equal Interval Search and Polynomial Approximation
+%  The for loop provided a continual calculation of three values; One value
+%  1 and 2 iterations before the desired value to provide enough
+%  information for the polyfit to take place.
+
+figure(1); subplot(1,2,1)
+for x = 0.05:0.01:0.15
+    
+    sig  = (1.11+1.11*(x)^(-0.18))/(D - D*(x));   % Maximum Stress in Plate
+    x2   = x - 0.01;                              % Iteration of x
+    sig2 = (1.11+1.11*(x2)^(-0.18))/(D - D*(x2)); % Iterated Stress
+    x3   = x2 - 0.01;                             % Poly Iteration of x2
+    sig3 = (1.11+1.11*(x3)^(-0.18))/(D - D*(x3)); % Poly Iteration of Stress
+    X    = [x,x2,x3];                             % Vector to Plot All Three Points
+    SIG  = [sig,sig2,sig3];                       % Vector to Plot All Three Points
+    Poly = polyfit(X,SIG,2);                      % Polyfit of Equal Interval Results
+
+    plot(x,sig,'b*')                              % Plots Each Point Calculated
+    hold on; grid on
+    
+    if sig>sig2
+        % Check the Minimum
+        break
+    end
+    i = i + 1; % Counter
+end
+
+%% Figure 1 Equal Interval And Direct Function Plotting
+xlabel('d/D','fontsize',14)
+ylabel('Maximum Stress','fontsize',14)
+title('Maximum Stress Iterative Values (D = 1.11)','fontsize',16)
+plot(j,(1.11+1.11.*j.^(-0.18))./(D - D.*j),'r--')
+legend('Equal Interval Search Points','Direct Plot of sigma as a Function of d/D')
+plot(linspace(0.05,0.15,30),polyval(polyfit(j,(1.11+1.11.*j.^(-0.18))./(D - D.*j),2),linspace(0.05,0.15,30)))
+hold off
+
+%% Figure 2: Equal Interval and Poly Approximation Plot
+
+A = linspace(x3,x,25);
+B = polyval(Poly,A);
+subplot(1,2,2)
+plot(X,SIG,'b*')
+xlabel('d/D','fontsize',14)
+ylabel('Maximum Stress','fontsize',14)
+title('Maximum Stress in Plate Optimization (D = 1.11)','fontsize',16)
+hold on; grid on
+plot(A,B,'r-')
+legend('Equal Interval Search Points','Polynomial Approximation')
+hold off
+
+fprintf('Iteration count: %3.0f \n',i)
+fprintf('Note: Iteration terminated once the minimum is reached. \n\n')
+fprintf('Minimum stress calculated: %3.2f \n',sig2)
+fprintf('Corresponding d/D value:   %3.2f \n',x2)
+fprintf('Note: Calculated using the equal interval method. \n\n')
