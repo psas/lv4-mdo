@@ -1,0 +1,187 @@
+% `template.tex', a bare-bones example employing the AIAA class.
+%
+% For a more advanced example that makes use of several third-party
+% LaTeX packages, see `advanced_example.tex', but please read the
+% Known Problems section of the users manual first.
+%
+% Typical processing for PostScript (PS) output:
+%
+%  latex template
+%  latex template   (repeat as needed to resolve references)
+%
+%  xdvi template    (onscreen draft display)
+%  dvips template   (postscript)
+%  gv template.ps   (onscreen display)
+%  lpr template.ps  (hardcopy)
+%
+% With the above, only Encapsulated PostScript (EPS) images can be used.
+%
+% Typical processing for Portable Document Format (PDF) output:
+%
+%  pdflatex template
+%  pdflatex template      (repeat as needed to resolve references)
+%
+%  acroread template.pdf  (onscreen display)
+%
+% If you have EPS figures, you will need to use the epstopdf script
+% to convert them to PDF because PDF is a limmited subset of EPS.
+% pdflatex accepts a variety of other image formats such as JPG, TIF,
+% PNG, and so forth -- check the documentation for your version.
+%
+% If you do *not* specify suffixes when using the graphicx package's
+% \includegraphics command, latex and pdflatex will automatically select
+% the appropriate figure format from those available.  This allows you
+% to produce PS and PDF output from the same LaTeX source file.
+%
+% To generate a large format (e.g., 11"x17") PostScript copy for editing
+% purposes, use
+%
+%  dvips -x 1467 -O -0.65in,0.85in -t tabloid template
+%
+% For further details and support, read the Users Manual, aiaa.pdf.
+
+
+% Try to reduce the number of latex support calls from people who
+% don't read the included documentation.
+%
+\typeout{}\typeout{If latex fails to find aiaa-tc, read the README file!}
+%
+
+
+\documentclass[]{aiaa-tc}% insert '[draft]' option to show overfull boxes
+\usepackage{amssymb}
+\usepackage{amsmath}
+\usepackage{fancyhdr}
+\usepackage{listings}
+\pagestyle{plain}
+%\fancyhf{}
+\setcounter{page}{1}
+\pagenumbering{arabic}
+
+\usepackage{color}
+ 
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+ 
+\lstdefinestyle{mystyle}{
+    %backgroundcolor=\color{backcolour},   
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{blue},
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codepurple},
+    basicstyle=\footnotesize,
+    breakatwhitespace=false,         
+    breaklines=true,                 
+    captionpos=b,                    
+    keepspaces=true,                 
+    numbers=left,                    
+    numbersep=5pt,                  
+    showspaces=false,                
+    showstringspaces=false,
+    showtabs=false,                  
+    tabsize=2
+}
+ 
+\lstset{style=mystyle}
+
+ \title{Design Optimization for a Student-Built \\ Sub-Orbital Rocket}
+
+ \author{
+  Ondrej Fercak\\
+  Erin S. Schmidt\\
+  %\and
+  Ian Zabel\\  
+ }
+
+ % Data used by 'handcarry' option if invoked
+ %\AIAApapernumber{YEAR-NUMBER}
+ %\AIAAconference{Conference Name, Date, and Location}
+ %\AIAAcopyright{\AIAAcopyrightD{YEAR}}
+
+ % Define commands to assure consistent treatment throughout document
+ \newcommand{\eqnref}[1]{(\ref{#1})}
+ \newcommand{\class}[1]{\texttt{#1}}
+ \newcommand{\package}[1]{\texttt{#1}}
+ \newcommand{\file}[1]{\texttt{#1}}
+ \newcommand{\BibTeX}{\textsc{Bib}\TeX}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+words words words
+\end{abstract}
+
+\section*{Nomenclature}
+
+\begin{tabbing}
+  XXX \= \kill% this line sets tab stop
+  $M_0^{+ \circlearrowleft}$ \qquad Moment in the x-axis (N m)\\
+  $T^0$ \qquad Torque (N m)\\
+  $\theta$ \qquad Angular position (${}^{\circ}$)\\
+
+ \end{tabbing}
+
+\section{Introduction}
+High-powered rockets, (def) have been operated by numerous student organizations around the world for several decades. The development of such launch vehicles offer education opportunities to students who often perform in engineering competitions, such as IREC or NASA's Student Launch. Student built rockets have also hosted scientific payloads. Finally these vehicles can be testbeds for novel technologies...
+
+The Portland State Aerospace Society (PSAS) is an engineering student organization and citizen science project located at Portland State University dedicated to developing low-cost, open-source, and open-hardware high-powered rockets and avionics systems with special interests in venture class launch vehicle technologies and nanosatellites\cite{PSAS:15bk}. In 2015 PSAS initiated a project to build and fly the first student built rocket above the so-called `Von Karman line', by most definitions the dividing line between the Earth's atmopshere and outer space.\\
+
+Numerous design challenges for a rocket designed for this mission.
+
+Difficulty of aerospace MDO, design coupling. The trajectory problem.
+
+\section{Methods}
+Discussion of objective statement. Summary of statement and constraints. Trajectory simulation. Tank mass/ volume. Simplex search algorithm. (Choice of initial vertices, Additional contraction cases in 4D-space), issues with convergence, non-dimensionalization, multi-modality of response surface, parameter sensitivity (table of minima vecotrs). Benchmark with scipy. Tables of minima vectors.
+
+\begin{lstlisting}[language=Python]
+from math import sqrt, pi, exp, log, cos
+import numpy as np
+import csv
+
+# A simple forward Euler integration for rocket trajectories
+def dry_mass(L, dia):
+    m_avionics = 3.3                       # Avionics mass        [kg]
+    m_recovery = 4                         # Recovery system mass [kg]
+    m_payload = 2                          # Payload mass         [kg]
+    m_tankage = 20.88683068354522*L*dia*pi # Tank mass Estimation [kg]
+    m_engine = 2                           # Engine mass          [kg]
+    m_feedsys = 20                         # Feed system mass     [kg]
+    m_airframe  = 6                        # Airframe mass        [kg]
+    return (m_avionics + m_recovery + m_payload + m_tankage 
+    + m_engine + m_feedsys + m_airframe)   # Dry mass             [kg]
+\end{lstlisting}
+
+
+\section{Results}
+Discussion of converged results, implications for design of LV4
+
+%\begin{figure}[h!]
+%  \centering
+%  \includegraphics[width=0.7\linewidth]{20160224_195322.png}
+%  \caption{Reaction wheel ground test articles, completed prototype and CAD design in SolidWorks.}
+%  \label{fig:rcs}
+%\end{figure}
+
+\section{Future Work}
+Model improvements: tanks mass/volume, other dry mass contributions, experiment with global optimization schemes, drag improvements, post-hoc analysis.
+
+\section{Conclusion}
+Focus on novelty of the problem.
+
+\section{Appendix}
+
+
+\begin{thebibliography}{9}% maximum number of references (for label width)
+%cite ideas: a few similar MDO papers, envelope estimation, scipy, PSAS
+\bibitem{Mahoney:15bk}
+Mahoney, Erin. {\it CubeSat Launch Initiative: 50 CubeSats from 50 States in 5 Years.} NASA, April 9, 2015. http://www.nasa.gov/content/cubesat-launch-initiative-50-cubesats-from-50-states-in-5-years.\\
+
+
+\end{thebibliography}
+
+\end{document}
+
