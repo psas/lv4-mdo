@@ -84,15 +84,14 @@ def f(x, rp=50):
     mdot = x[1] # Propellant mass flow rate (kg/s)
     dia = x[2] # Rocket diameter (in)
     p_e = x[3]  # Pressure (kPa)
-    (alt, v, a, t, F, D, Ma, rho, p_a, T_a, TWR, ex, Ve, A_t, dV1, m, S_crit, q, m_prop) = sim.trajectory(L, mdot, dia, p_e)
-    obj_func = m[0] + rp*(max(0, (L+2)/(dia*0.0254) - 10)**2 + max(0, -TWR + 2)**2 + max(0, -S_crit + 0.35)**2 + max(0, -alt[-1] + 100000)**2 + max(0, max(abs(a))/9.81 - 15)**2)   
-    #obj_func = m[0] #+ rp*(max(0, -alt[-1] + 100000)**2)    
+    (alt, v, a, t, F, D, Ma, rho, p_a, T_a, TWR, ex, Ve, A_t, dV1, m, S_crit, q, m_prop) = trajectory.trajectory(L, mdot, dia, p_e)
+    obj_func = m[0] + rp*(max(0, (L+2)/(dia*0.0254) - 15)**2 + max(0, -TWR + 2)**2 + max(0, -S_crit + 0.35)**2 + max(0, -alt[-1] + 100000)**2 + max(0, max(abs(a))/9.81 - 15)**2)   
     return obj_func
 
 # Results
 if __name__ == '__main__': # Testing
     import numpy as np
-    from trajectory import sim
+    import trajectory
     from math import sqrt, pi, exp, log, cos
     import math as m
     
@@ -106,19 +105,22 @@ if __name__ == '__main__': # Testing
     (f, x, it) = search(f, np.array(X0), max_iter, gamma, beta, rp, a)
     """
     
-    from scipy.optimize import minimize, basinhopping
+    from scipy.optimize import minimize
     #res = optimize.basinhopping(f, X0)    
     res = minimize(f, X0, method='nelder-mead')    
     
     
-    (alt, v, a, t, F, D, Ma, rho, p_a, T_a, TWR, ex, Ve, A_t, dV1, m, S_crit, q, m_prop) = sim.trajectory(res.x[0], res.x[1], res.x[2], res.x[3], 500)   
+    (alt, v, a, t, F, D, Ma, rho, p_a, T_a, TWR, ex, Ve, A_t, dV1, m, S_crit, q, m_prop) = trajectory.trajectory(res.x[0], res.x[1], res.x[2], res.x[3], 500)   
     print('\n')
     
     import matplotlib
     import matplotlib.pyplot as plt
+    from matplotlib import rc
     import pylab
     #%config InlineBackend.figure_formats=['svg']
     #%matplotlib inline
+    rc('font', **{'family': 'serif', 'serif': ['Computer Modern']})
+    rc('text', usetex=True)
     
     L = res.x[0]
     mdot = res.x[1]
@@ -131,7 +133,7 @@ if __name__ == '__main__': # Testing
     ax1.plot(t, alt/1000)
     ax1.set_ylabel("Altitude (km)")
     ax1.yaxis.major.locator.set_params(nbins=6)
-    ax1.set_title('LV4 Trajectory')
+    #ax1.set_title('LV4 Trajectory')
     ax2.plot(t, v)
     ax2.yaxis.major.locator.set_params(nbins=6)
     ax2.set_ylabel("Velocity (m/s)")
@@ -157,7 +159,7 @@ if __name__ == '__main__': # Testing
     print('x0 = ', X0)
     print('iterations = ', res.nit)
     print('design GLOW = {0:.1f} kg'.format(m[0]))
-    print('x0 GLOW = ', sim.trajectory(X0[0], X0[1], X0[2], X0[3])[-4][0])
+    print('x0 GLOW = ', trajectory.trajectory(X0[0], X0[1], X0[2], X0[3])[-4][0])
     
     print('\n')
     print('CONSTRAINTS')

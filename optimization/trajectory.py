@@ -11,8 +11,9 @@ def dry_mass(L, dia):
     m_engine = 2                           # Engine mass          [kg]
     m_feedsys = 20                         # Feed system mass     [kg]
     m_airframe  = 6                        # Airframe mass        [kg]
-    return (m_avionics + m_recovery + m_payload + m_tankage 
-    + m_engine + m_feedsys + m_airframe)   # Dry mass             [kg]
+    #return (m_avionics + m_recovery + m_payload + m_tankage 
+    #+ m_engine + m_feedsys + m_airframe)   # Dry mass             [kg]
+    return 175
 
 def propellant_mass(A, L, OF=1.3):
     rho_alc = 852.3             # Density, ethanol fuel [kg/m^3]
