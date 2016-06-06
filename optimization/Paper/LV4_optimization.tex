@@ -52,9 +52,12 @@
 \usepackage{amssymb}
 \usepackage{amsmath}
 \usepackage{listings}
+\usepackage{graphicx,xcolor}
 \usepackage{svg}
 \pagestyle{plain}
 \usepackage{fancyhdr}
+\usepackage{wasysym}
+\usepackage{textcomp}
 %\usepackage{lastpage}
 % 
 %\pagestyle{fancy}
@@ -118,158 +121,276 @@
 \maketitle
 
 \begin{abstract}
-words words words
+Students at Portland State University are working to build the first student-built rocket to fly above the 100 km von Karman line. To date there have been few examples of numerical convex design optimization applied to the problem of such experimental student-built rockets. A Runge-Kutta integration trajectory simulation was built with Python. This was used to perform a Simplex Search optimization with the goal of optimizing rocket GLOW. The optimization has identified a concept for a rocket with a 113 kg GLOW, design thrust of 3.2 kN thrust (sea-level), expansion ratio of 4.7, diameter of \diameter11" capable of reaching the von Karman line.
 \end{abstract}
 
 \section*{Nomenclature}
 
 \begin{tabbing}
   XXX \= \kill% this line sets tab stop
-  $M_0^{+ \circlearrowleft}$ \qquad Moment in the x-axis (N m)\\
-  $T^0$ \qquad Torque (N m)\\
-  $\theta$ \qquad Angular position (${}^{\circ}$)\\
+  PSAS \qquad Portland State Aerospace Society\\
+  $h$ \qquad Altitude (m)\\
+  $\dot{m}$ \qquad  Mass flow rate (kg/s)\\
+  $D$ \qquad Airframe diameter (in)\\
+  $L$ \qquad Total propellant tank length (m)\\
+  $TWR$ \qquad Thrust-to-Weight Ratio \\
+  $p_e$ \qquad Nozzle exit pressure (kPa)\\
+  $p_{ch}$ \qquad Combustion chamber stagnation pressure (kPa)\\
+  $m$ \qquad Mass (instantaneous) (kg)\\
+  $g$ \qquad Constraint vector\\
+  $x$ \qquad Design vector\\
+  GLOW \qquad Gross-Lift-Off-Weight (kg)\\
 
  \end{tabbing}
 
 \section{Introduction}
-There is an emerging demand by both governments and private industry for small 'venture class' launch vehicles to deliver nano-satellites into Low Earth Orbit (LEO). While there are yet few operational examples of such dedicated small satellite launch vehicles, they would likely share cladistic similarities, at the extrema of their size and mass envelope range, with both large orbital launch vehicles and the comparatively small high-powered rockets that have been operated by hundreds of amateur and university groups for decades. Typically high-powered rockets fly ballistic trajectories with apogees generally less than 10 km above sea-level. However, several amateur and university groups harbor aspirations of sub-orbital flight above the von Karman line 100 km above the surface of the Earth. As of the Spring of 2016 the current record holder for altitude at apogee by a student organization is TU Delft's Delft Aerospace Rocket Engineering (DARE) team which reached 21.457 km with their Stratos II+ rocket on October 16, 2015 (cite).
+There is an emerging demand by both governments and private industry for small 'venture class' launch vehicles to deliver nano-satellites into Low Earth Orbit (LEO). While there are yet few operational examples of such dedicated small satellite launch vehicles, they would likely share cladistic similarities, at the extrema of their size and mass envelope range, with both large orbital launch vehicles and the comparatively small high-powered rockets that have been operated by hundreds of amateur and university groups for decades. Typically high-powered rockets fly ballistic trajectories with apogees generally less than 10 km above sea-level. However, several amateur and university groups harbor aspirations of sub-orbital flight above the von Karman line 100 km above the surface of the Earth. As of the Spring of 2016 the current record holder for altitude at apogee by a student organization is TU Delft's Delft Aerospace Rocket Engineering (DARE) team which reached 21.457 km with their Stratos II+ rocket on October 16, 2015\cite{dare}.
 
-The Portland State Aerospace Society (PSAS) is an engineering student organization and citizen science project located at Portland State University dedicated to developing low-cost, open-source, and open-hardware high-powered rockets and avionics systems with special interests in small launch vehicle technology and nanosatellites\cite{PSAS}. In 2015 PSAS initiated a project to build and fly it's own entry in this rapidly intensifying 'university space race'.
+The Portland State Aerospace Society (PSAS) is an engineering student organization and citizen science project located at Portland State University dedicated to developing low-cost, open-source, and open-hardware high-powered rockets and avionics systems with special interests in small launch vehicle technology and nanosatellites\cite{PSAS}. In 2015 PSAS initiated a project to build and fly it's own entry in this rapidly intensifying `university space race'.
 
-Herein, we apply design optimization methodology to the problem of design and trajectory optimization of small sounding rockets, and particularly to the PSAS's LV4 'space rocket'. This rocket will leverage powerful liquid-fuel propulsion, an extremely light-weight carbon-composite airframe, full 6-DoF attitude control and active stabilization. LV4 is intended to fly with a design apogee of over 100 km, and is currently planned for launch by 2021. A SolidWorks CAD render of a concept for LV4 is shown in Figure \ref{LV4}.(LV4 figure)
+Herein, we apply design optimization methodology to the problem of design and trajectory optimization of small sounding rockets, and particularly to the PSAS's LV4 `space rocket'. This rocket will leverage powerful liquid-fuel propulsion, an extremely light-weight carbon-composite airframe, full 6-DoF attitude control and active stabilization. LV4 is intended to fly with a design apogee of over 100 km, and is currently planned for launch by 2021. A SolidWorks CAD render of a concept for LV4 is shown in Figure \ref{fig:rocket}.
+
+\begin{figure}[h!]
+  \centering
+  \includegraphics[width=0.9\linewidth]{Figures/LV4_render.png}
+  \caption{SolidWorks CAD render of an early design phase concept of the PSAS LV4 sub-orbital rocket.}
+  \label{fig:rocket}
+\end{figure}
 
 \section{Methods}
 \subsection{Problem Definition}
-Clean-sheet conceptual design and trajectory optimization of launxh vehicles is a classically difficult problem. This problem arises for two reasons: that the trajectory equation a 2nd order non-linear partial differential equation having no close form solution, and detailed design choices in propulsion, structures/weights, aerodynamics, and guidance and control which ultimately all appear as variables in this equation are both highly coupled and non-hierarchical. In the past the traditional approach to dealing with this problem has been to evaluate vehicle performance by examining the value of each parameter by fixing the values of the remaining parameters e.g. the ``one variable-at-a-time" trade-off analysis approach. However there are several important limitations to this approach:
+Clean-sheet conceptual design and trajectory optimization of launch vehicles is a classically difficult problem. This problem arises for two reasons. The first is that the trajectory equation is a 2nd order non-linear ordinary differential equation with coefficients that are themselves described by non-linear first and second order ODE's. This problem has no closed-form solution. Secondly, detailed design choices in propulsion, structures/weights, aerodynamics, and guidance and control which ultimately all appear as variables in the governing equation are both highly coupled and non-hierarchical. Schematically the coupling between the variables is presented in Figure \ref{fig:coupling}. The traditional approach to dealing with this problem has been to evaluate vehicle performance by examining the value of each parameter by fixing the values of the remaining parameters e.g. the ``one variable-at-a-time" trade-off analysis approach. However there are several important limitations to this approach:
 \begin{itemize}
 \item Conceptual design is usually carried out with low-fidelity models
 \item Some relationships among the design variables are poorly understood
 \item Optimizing individual design variables does not guarantee optimality at the overall system level
 \end{itemize}
 
-In practice this results in a highly iterative design process and concomitant requirement mismatches, developmental dead-ends and sub-optimal final design. The problem with suboptimal design is magnified by the ramifications of Konstantin Tsiolkovsy's equation, with the severe implication of exponential growth in design requirements for linear increases in rocket dry mass. Since ultimately all design decisions impact the rocket dry mass in some way it is imperative to understand these trade-offs and compromises as ealy in the design process as possible to reduce the potential for technical, schedule and cost risks. This is especially the case for time, technical expertise and funding constrained student organizations. Therefore there is a strong motivation to treat the conceptual design parameters ``all-at-once" using applied optimization techniques. A numerical design optimization approach allows us o systematically explore a vast trade space under a realistic timeframe.
+In practice this results in a highly iterative design process and concomitant requirement mismatches, developmental dead-ends and sub-optimal final design. The problem with sub-optimal design is magnified by the ramifications of Konstantin Tsiolkovsy's equation, with the severe implication of exponential growth in design requirements for linear increases in rocket dry mass. Since ultimately all design decisions impact the rocket dry mass in some way it is imperative to understand these trade-offs and compromises as early in the design process as possible to reduce the potential for technical, schedule, and cost risks. This is especially the case for time, technical expertise, and funding constrained student organizations. Therefore there is a strong motivation to treat the conceptual design parameters ``all-at-once" using applied optimization techniques. A numerical design optimization approach allows us o systematically explore a vast trade space under a realistic timeframe.
 
-Some commercial and/or governmental tools exist for launch vehicle design optimization. These include codes such as FASTPASS \cite{Fastpass}, and SWORD\cite{SWORD}. There are also open-source design and optimization tools that can be applied to high-powered rocketry such as Open Rocket(cite), or JSBSim (cite), however these tools either cannot be run in a batch mode or lack I/O tools to support direct numerical optimization. In the context of this developing interest in clean-sheet small launch vehicle designs we can identify a need for a design tool high-level enough for simplicity, speed, and ease of use, but which captures enough of the dimensions of the optimization problem to still be useful as a guide in the early conceptual design phase. This tool will use fairly low-fidelity models, and will be used for trajectory optimization, propulsion design, airframe sizing, and mass estimation. Per PSAS’s open-source mandate all (non-ITAR) project development deliverables are being made publicly available under a GNU GPL v2 license\cite{Git}. This code was written in Python because it is free and open-source, and for its inherent object-oriented modularity, numerical efficiency, and wide use in the community of scientific computing. It is hoped by the authors, and the members of PSAS, that the discourse around educational launch vehicles and their design will be elevated by making the information for this project publicly available.
+Some commercial and/or governmental tools exist for launch vehicle design optimization. These include codes such as FASTPASS \cite{Fastpass}, and SWORD\cite{SWORD}. There are also open-source design and optimization tools that can be applied to high-powered rocketry such as Open Rocket\cite{openrocket}, or JSBSim\cite{jsbsim}, however these tools either cannot be run in a batch mode or lack I/O tools to support direct numerical optimization. In the context of this developing interest in clean-sheet small launch vehicle designs we can identify a need for a design tool high-level enough for simplicity, speed, and ease of use, but which captures enough of the dimensions of the optimization problem to still be useful as a guide in the early conceptual design phase. This tool will use fairly low-fidelity models, and will be used for trajectory optimization, propulsion design, airframe sizing, and mass estimation. Per PSAS’s open-source mandate all (non-ITAR) project development deliverables are being made publicly available under a GNU GPL v2 license\cite{Git}. This code was written in Python because it is free and open-source, and for its inherent object-oriented modularity, numerical efficiency, and wide use in the community of scientific computing. It is hoped by the authors, and the members of PSAS, that the discourse around educational launch vehicles and their design will be elevated by making the information for this project publicly available.
+
+\begin{figure}[ht]
+    \centering
+    \includesvg[width=0.7\textwidth]{coupling}
+    \caption{Coupling and dependencies between various launch vehicle design disciplines.}
+	\label{fig:coupling}
+\end{figure}
 
 \subsection{Objectives and Constraints}
-The objective of the optimization is to minimize the total system complexity and cost of the 100 km launch vehicle. While these objectives can be abstract numerical values in the early conceptual design phase, we expect them to scale closely with the initial mass of the launch vehicle (including loaded propellants), which is usually defined by the Gross Lift-Off Weight (GLOW) figure of merit.  
+The objective of the optimization is to minimize the total system complexity and cost of the 100 km launch vehicle. While these objectives can be abstract as numerical values in the early conceptual design phase, we expect them to scale closely with the initial mass of the launch vehicle (including the mass of loaded propellants), which is usually defined by the Gross Lift-Off Weight (GLOW) figure of merit.  
 
-Thus we wish to minimize GLOW subject to practical model linearity and structural constraints. In the most practically usefully sense the design variables include thrust, airframe diameter and propellant tank lengths. However for numerical simplicity thrust will be expanded into mass flow rate and expansion ratio design variables, and then backsolved within the simulation. There are also a large number of design constants present in the models, which include specific impulse and combustion chamber pressure, propellant mixture ratio, and others, but which for the sake of brevity will be largely ignored in the following discussion. The model currently include 5 inequality constraints:
+Thus we wish to minimize GLOW subject to practical model linearity and structural constraints. In the most practically usefully sense the design variables include thrust, airframe diameter and propellant tank lengths. However for numerical simplicity thrust will be expanded into mass flow rate and expansion ratio design variables, and then back-solved within the simulation. There are also a large number of design constants present in the models, which include specific impulse and combustion chamber pressure, propellant mixture ratio, and others, but which for the sake of brevity will be largely ignored in the following discussion. The model currently include 6 inequality constraints:
 
 \begin{itemize}
 \item Apogee: 100 km
-\item TWR: Trade-off between gravity loss and aerodynamic stability
-\item L/D Ratio: Trade-off between aerodynamic stability and mechanical (non-rigid body) resonance modes
+\item Thrust-to-Weight Ratio (TWR): Trade-off between gravity loss and aerodynamic stability
+\item Length to Diameter Ratio(L/D): Trade-off between aerodynamic stability and mechanical (non-rigid body) resonance modes
 \item Maximum acceleration: Set by the material limits of various launch vehicle subsystems
-\item Nozzle over-expansion, checks that the assumption made to help linearize thrust model is valid
+\item Diameter: Manufacturability (current process scale-able from \diameter6" to up to \diameter14") 
+\item Nozzle over-expansion: Prevents the assumption made to help linearize thrust model from becoming invalid
 \end{itemize}
 
 Mathematically the problem can be stated as
 
-\[ \mbox{min} 
+\[ \mbox{min} \hspace{2 mm} m_{initial} = m_{dry}(h) + m_{propellants,  initial}(h) \]
+\begin{eqnarray*} \mbox{where} \hspace{5 mm} \begin{split}x = \left\{ \begin{array}{ll}      & \dot{m}\\
+          & D\\
+          & L\\
+          & p_e \end{array} \right. 
+          \end{split} \hspace{2 mm} \mbox{subject to} \hspace{2 mm} \begin{split}
+          g = \left\{ \begin{array}{ll}
+          & 5 \leq L/D \leq 15\\
+          & TWR \geq 2\\
+          & \frac{p_e}{p_a} \geq 0.5\\
+          & 6 \leq D \leq 14\\
+          & h \geq 100000\\
+          & \frac{a_{max}}{g_0} \leq 15 \end{array} \right. \end{split}\end{eqnarray*}
 
-Design variables: $m_{wet}=f(r, L)$, $m_{dry}=f(F)$, $mdot$, $radius$, $p_e$, $p_ch$  
-Constraints: $L/D<15$, $TWR>1$, Sommerfield criterion $(p_e/p_a)>0.35$, $3 < radius < 7$, $x >= 100000$, $a/g_0 <= 15$
+While the objective function itself is given by a very simple function of the design variables $D$ and $L$, the constraints require a much more complex model. The following section discusses the trajectory simulation model required to capture values of these constraints for any particular design vector.
 
 \subsection{Trajectory Simulation}
-Forward Euler integration of the rocket trajectory, using finite difference discretizations of the governing equation of motion, which is essentially Newton's 2nd law. 
+The trajectory of the rocket, in a single degree of freedom, can be best described by altitude $h(t)$, velocity $V(t)$, and total mass $m(t)$ state variables which are functions of time. The initial values of the state variables are given by $h_0$, $V_0$, and $m_0$ respectively. The governing equation of the rocket trajectory is Newton's 2nd law of motion 
 
-$$F = \frac{d(mv)}{dt}$$
-$$\frac{d(mv)}{dt} = Thrust(x) - Drag(x, \frac{dx}{dt}, \frac{dx}{dt}^2) - mg_0$$
+$$F = \frac{d(mV)}{dt}.$$
 
-discretizations for the governing diff eq.\\
+This can be expanded in terms of the sum of forces acting on the rocket during free flight going up to apogee
 
-Instantaneous mass is determined from the mass flow rate, and the initial propellant tankage volume (determined from the length and diameter design variables). The model include the isentropic equations for the calculation of rocket thrust as a function of the expansion ratio, the chamber pressure, the mass flow rate, and the altitude variant ambient pressure. Thrust ceases when propellant is exhausted. The other rocket engine design parameters are based on those of the 1 kN LOX/IPA static test engine presently being developed at PSU as part of a senior capstone project. Drag is calculated using the quadratic drag model $F_d = \frac{1}{2} \rho V^2 C_d A$. The frontal area $A$ is determined from the diameter design variable input. The local speed of sound, density and pressure are determined from the U.S. 1976 Standard Atmosphere. Drag coefficients are interpolated from aerodynamic data from the 1950's era NACA/USN/NASA Aerobee-150 sounding rocket class, which is expected to be dimensionally similar to the LV4 sounding rocket. Given a vector of the four design variables the trajectory function returns numerical values of the objective function and constraint vector. Pseudo-objective function.
+$$Thrust(h) - Drag\left(h, \frac{dh}{dt}, \left(\frac{dh}{dt} \right)^2 \right) - m\left(\frac{dm}{dt}, t\right)g_0 = \frac{d}{dt} \left(m \frac{dh}{dt}\right).$$
+
+We usually express drag as
+\[F_d = \frac{1}{2} \rho V^2 C_d A\]
+
+where $\rho$ is the local air density, $A$ is the frontal area, $C_d$ is the drag coefficient which for a given airframe geometry is a function of angle-of-attack (which for a 1-DoF system is identically zero), and Mach number. The Mach number is a function given by
+
+\[ \frac{V}{c} = \frac{V}{\sqrt{kRT}} \]
+
+where $c$ is the local speed of sound, $k$ is the gas ratio of specific heats, $R$ is the specific gas constant, and $T$ is the gas temperature. These numbers are supplied, as well as $\rho$, and $p_a$ the ambient pressure, are supplied by the 1976 U.S. Standard Atmosphere model. For simplicity, drag coefficients are interpolated from published aerodynamic data from the 1950's era NACA/USN/NASA Aerobee-150 sounding rocket class, which is expected to be dimensionally similar to the LV4 sounding rocket\cite{aerobee}.
+
+The rocket thrust force, given a huge number of simplifying assumptions, is a function of the mass flow rate design variable, the chamber pressure constant, and the ambient pressure state variable. It is given by
+\[F_t = \dot{m}V_e + A_e(p_e - p_a) \]
+
+where $V_e$ is the rocket exhaust velocity, $A_e$ is the rocket nozzle exit area. The exhaust velocity, again given a large number of simplifying assumptions, is given by
+
+\[V_e = \sqrt{\frac{2kRT_{ch}}{k - 1}\left(1 - \left(\frac{p_e}{p_{ch}}\right)^{((k - 1)/k)}\right)}\]
+
+where $T_{ch}$ is the chamber pressure, which along with the combustion chamber gas ratio of specific heats $k$, and gas constant $R$ are functions of the mixture ratio of the propellants, and the chamber pressure $p_{ch}$ determined using the NASA Chemical Equilibrium Analysis (CEA)\cite{CEA} tool and are design constants. It should be noted that the $p_e$ is a design variable tied to the expansion ratio of the rocket engine, but that $p_a$ is constantly changing with altitude. The thrust function is maximized when $p_e = p_a$, however this occurs at one, and only one, altitude. Thus the design expansion ratio selection directly benefits from trajectory optimization.
+
+By finite-differencing the derivatives of the governing equation a zeroth-order Runge-Kutta integration (e.g. Forward Euler) of the governing equation is used to determine the rocket trajectory. This approach was chosen only for simplicity; in principle central differencing or trapezoidal integration are more generally accurate discretization approaches. Forward Euler difference equations always have the form
+
+\[y_{i+1} = y_i + \left(y\hspace{-1 mm}-\hspace{-1 mm}\mbox{rate at } t_i \right)(t_{i+1} - t_i) \]
+
+where $y(t)$ is the state variable being integrated, and $i$ is the time index superscript. In this way the state variables $h$, $V$, and $m$ can be defined at any discrete time $t_0$, $t_1$, $t_2$ ... $t_i$. Given a vector of the four design variables the trajectory function returns numerical values of the objective function and constraint vector. This trajectory code was benchmarked against known trajectory and design date for both the Aerobee-150 and Armadillo Stig-B sounding rockets, and the results compare favorably. This grants us at least some confidence in the assumptions made in the model. The Python trajectory module code can be found in the appendices.
 
 \subsection{Optimization Approach}
-Simplex search algorithm. (Choice of initial vertices, Additional contraction cases in 4D-space), issues with convergence, non-dimensionalization, multi-modality of response surface, parameter sensitivity (table of minima vectors). Benchmark with Scipy. Tables of minima vectors.\\
-
-develop the pseudo-pbjective function.
-
-\subsubsection{Reasons for Nelder-Mead Method}
-
-There are several general approaches to MDO for LV design found in literature:
+There are several general approaches to design optimization for launch vehicle design found in literature:
 \begin{enumerate}
-\item DOE methods (Taguchi\cite{Taguchi}, RSM\cite{RSM})
-\item Gradient methods
+\item Design of Experiments methods (Taguchi Methods\cite{Taguchi} \hspace{0.1 mm}, Response Surface Methods\cite{RSM})
+\item Gradient methods (steepest descent)
 \item Stochastic methods (genetic algorithm\cite{genetic}, simulated annealing)
 \end{enumerate}
+While there are certain advantages to each of these approaches, only gradient based methods were within the scope of the ME596 class. Furthermore the difficulty of differentiating the governing equations, the expected multi-modal nature of the response surface and the discrete nature of some of the variables ($m$, $C_d$, etc.) argue against gradient based methods. We therefore selected a gradient free, non-stochastic approach: the Nelder-Mead method (e.g. Simplex Search). The limitations of this choice may become evident for high-dimension problems, but for $x \in \textbf{R}^4$, we expect the algorithm have major problems with convergence. Inequality constraints were handled by using an exterior penalty function. The pseudo-objective function as finally implemented is given by
+\begin{verbatim}
+obj_func = m[0] + rp*(max(0, (L+2)/(dia*0.0254) - 15)**2 + max(0, -TWR + 2)**2 \
++ max(0, -S_crit + 0.35)**2 + max(0, -alt[-1] + 100000)**2 + max(0, max(abs(a))/9.81 - 15)**2)
+\end{verbatim}
 
-We selected a gradient free non-stochastic approach: the Nelder-Mead method. This method applies to nonlinear and derivative-free problems. With four design variables, using a simplex is beneficial to keep track of and continually improve on various optimums. Regarding this problem being derivative-free, a zeroth-order method is much easier to implement than one that requires taking the gradient of the pseudo-objective function mass summation. This is due to the fact that the mass summation is discrete, meaning any method requiring a gradient cannot be applied. If certain properties were made continuous functions, such as the atmospheric density with respect to altitude as well as drag coefficient with respect to mach number, a first-order method could potentially be applied. Steepest descent is a good first-order method choice with the benefit of arriving at a solution potentially much faster than the Nelder-Mead method.
+The principle difficulties involved in the implementation of this algorithm (beyond those faced in earlier ME596 homework) were generalizing the algorithm reflection case handling, and initial simplex vertices generation to $\textbf{R}^4$ space. The Python Simplex Search module code can be found in the appendices.
+
+\subsubsection{Qualitative Discussion of Algorithm Behavior}
+While the optimization algorithm has proven to be excellent at quickly finding feasible design given any initial guess of the design variables $x_0$, it has also exhibited issues with convergence, and parameter sensitivity. This is often manifested by next-step iterative reflection points becoming trapped in a loop. In practice this causes the current best design point to move closer to an optimum in large "fits and spurts". Another problem is that there appear to be many optima points with similar pseudo-objective function values, but different design points. This leads to a large sensitivity to $x_0$, $\alpha$, $\gamma$ and $\beta$ parameter choices. Some attempt was made to  smooth out the performance of the algorithm by non-dimensionalizing all of the function values in the pseudo-objective function. This helps prevent numerically large constraints from prejudicing over much the final optimum, and makes the choice of $r_p$ seem hopefully less arbitrary. 
 
 \subsubsection{Benchmarking}
+To ensure that the code written is providing accurate and sensible results, the output and code was benchmarked against test cases with simple analytical solutions and against an off-the-shelf Nelder-Mead algorithm. 
 
-To ensure that the code written is providing accurate and sensible results, the output and code must be confirmed through various methods. One method of confirming the results is to apply a provided homework problem and respective solution, and check to see if the output correlates with the known answer. Since a previous homework problem for ME 596 required a simplex search, that problem was applied to the code written for the final project. The results correlated with the known answer, with no necessary changes to the code. Another method of confirming the results is to use an existing code that solves using the simplex search method. Applying the mass summation pseudo-objective function to the preexisting code provided in the ScyPy library resulted in a better optimum for the gross liftoff weight optimization with only a  percent difference. With the results and method confirmed through various methods, the behavior of the algorithm can be discussed.
-
-\subsubsection{Qualitative Discussion of Algorithm behavior}
-
-The simplex search method developed has a few behaviors that do not show up in other packages using the same method. Over the course of a number of incrementations, the minimum values will change drastically over a single time step then change gradually over multiple timesteps. This will repeat as the analysis continues multiple times before a minimum is achieved. The simplex search method is also very capable of optimizing the design parameters, but has the potential to get stuck on what seem to be local minima for the objective function. This is potentially due to the fact that the code is choosing one method (reflection, expansion, contraction) and changing the method after the first iteration. This can, for example, lead to a large jump towards and optimum after the first iteration and small changes each iteration afterwards. An optimum is still achieved, with the code optimizing the design variables and constraints extremely well, hugging the limits of the constraints as close as possible. An example of this is how the optimum result may have an improved mass value, but the Sommerfeld criteria will be as close to 0.3 as possible without violating the constraint. The reasoning for this is unclear, but is potentially due to a large penalty function coefficient rp, where the function is drastically penalized any time the constraints are not met. Reducing the penalty function coefficient slightly reducing the tendency to hug the constraints, but harms the code in other ways such as extending analysis time and less optimal gross liftoff weights
+One method of confirming the results is to apply a provided homework problem and respective solution, and check to see if the output correlates with the known answer. Since a previous homework problem for ME 596 required a simplex search, that problem was applied to the code written for the final project. The results correlated with an answer determined using classical analytical methods. The full launch vehicle design optimization problem results were also benchmarked against the SciPy \cite{scipy} Python optimization library. The \begin{verbatim}scipy.optimize.minimize(f, x_0, method='nelder-mead') \end{verbatim} results often offered slight improvements in optimized GLOW compared with those from our own code for a given $x_0$. The SciPy minimize function also ran much faster than our own, at least 2 orders of magnitude less physical time for the same number of iterations.
 
 \section{Results}
-Discussion of converged results, implications for design of LV4
+The results of the design optimization in terms of the optimization design variables and a number of derived secondary design variables are presented in Table \ref{table:outputs}. Various state variables for the trajectory of the optimized LV4 design are plotted against time in Figure \ref{fig:trajectory}.
 
-%\begin{figure}[h!]
-%  \centering
-%  \includesvg{Figures/trajectory}
-%  \caption{Simulated trajectory for an optimized LV4 design.}
-%  \label{fig:trajectory}
-%\end{figure}
+\begin{table}
+\centering
+	\begin{tabular}{l|l}
+		\hline
+		$\textbf{Parameter}$&$\textbf{Output}$\\
+		\hline
+		Optimized Design Vector & [1.2, 1.4, 10.8, 68.2]\\
+		Initial Guess & [1.0, 1.6, 12.0, 50.0]\\
+		Tankage Length & 1.2 m\\
+		Mass Flow Rate & 1.4 kg/s\\
+		Airframe Diameter & 10.8 in.\\
+		Nozzle Exit Pressure & 68.2 kPa\\
+		Iterations & 279\\
+		Design GLOW & 112.8 kg\\
+		Initial GLOW & 114.7 kg\\ \\
+		\hline
+		$\textbf{Constraints}$&\\
+		\hline
+		L/D ratio ($\leq15$) & 11.7\\
+		Sommerfield Criterion ($\geq0.3$) & 0.7\\
+		Max Acceleration ($\leq15$) & 6.7 g's\\
+		TWR at Liftoff ($\geq2$) & 1.9\\
+		Apogee Altitude & 100 km\\ \\
+		\hline
+		$\textbf{Additional Information}$&\\
+		\hline
+		Mission Time at Apogee & 176 s\\
+		Total Propellant Mass & 70 kg\\
+		Thrust (sea level) & 3.2 kN\\
+		Thrust (vacuum) & 3.6 kN\\
+		Burn Time & 53 s\\
+		Expansion Ratio & 4.7\\
+		Throat Area & 1.5 $\mbox{in.}^2$\\
+		isp & 245 s\\
+		Chamber Pressure & 350 psi\\
+		Delta-V & 2.4 km/s\\
+		Required Delta-V & 1.4 km/s\\	
+	\end{tabular}
+\caption{Optimized design parameters for the LV4 sub-orbital rocket.}
+\label{table:outputs}
+\end{table}
+
+\begin{figure}[h!]
+  \centering
+  \includesvg{trajectory}
+  \caption{Simulated trajectory up to apogee for an optimized LV4 design.}
+  \label{fig:trajectory}
+\end{figure}
+
+It can be seen from the optimization results, an immediate take away is that a 100km sounding rocket can be constructed with a GLOW similar to that of liquid fueled rockets with apogees of less than 10 km. This feat is accomplished by the incredible mass savings of the inline monocoque  carbon-composite propellant tanks, as they drive down dry mass significantly compared with traditional welded aluminum tanks. This is a ramification of the exponential nature of Tsiolkovsky's problem, which can be seen in Figure \ref{fig:glowvsmdry} which shows the dependence of optimal GLOW on initial mass. Such tanks would only need to be 1.2 m long and roughly \diameter11". This is achievable with current manufacturing techniques developed by PSAS as part of a senior design project in 2014. Furthermore, the optimize design thrust required is only 3.6 kN in a vacuum. Such a rocket engine would only be marginally larger than the 2 kN engine already under development by PSAS as part of a 2016 senior design project. 
+
+\begin{figure}[h!]
+  \centering
+  \includesvg[width=0.5\textwidth]{glow}
+  \caption{Dependence of optimized GLOW on $m_{dry}$.}
+  \label{fig:glowvsmdry}
+\end{figure}
 
 \section{Future Work}
-Model improvements: tanks mass/volume, other dry mass contributions, experiment with global optimization schemes, drag improvements, gravity model(WGS84 model harmonic expansion of the gravitational field potential), post-hoc analysis.
+There are many possible improvements to be made to the model, however we should still strive for a model with simple and straightforward inputs, and reasonable computation time. Some possible ways forward are outline below.
 
-\subsection{Drag Model Improvements}
-
-Since the model used for drag in the original trajectory function is based on recorded data for the Aerobee-150 sounding rocket, there is room for improvement. To improve the drag model, data that correlates better to the LV4 rocket design is needed. While the aerobee-150 ( ) drag data does correlate to a reasonable extent, data specific to the LV4 airframe is the best option. The desired values are drag coefficients and their respective mach numbers, which either requires flight data for the LV4 rocket or simulation results. To keep costs low while still acquiring good information, a CFD simulation of the LV4 rocket design will be performed. This simulation will be developed using both Solidworks and STAR CCM+, both of which are capable of supersonic CFD. The general method will be to develop the model based the optimization code in Solidworks, and compare those simulation results with recorded flight data. The method for implementing this information into the trajectory function will not change for the time being, meaning the results from the simulation will be tabulated and imported into the code the same way the aerobee-150 ( ) data is.
+\subsection{Trajectory Model Improvements}
+As stated previously the model presently uses the somewhat unphysical approach of determining drag coefficients by interpolating from a lookup table of historical data. However the data is based on a rocket with geometry that will undoubtedly be different from LV4. This is potentially a large source of error. There are 2 approaches to improving the $C_d$ calculation: by using an iterative approach where optimum values of length and diameter are determined from the optimizer, these are used with static stability analysis to design and size fins, mesh the CAD drawing of the concept and perform a compressible-flow CFD simulation (perhaps using CD-adapco Star CCM+) sweeping though Mach numbers. The improved $C_d$ tables would then be used in the next iteration of the optimizer. This process would be iterated until the GLOW converges. A second approach would be to calculate approximate $C_d$ values in a less accurate, but also much less manual labor intensive manner. This could be accomplished by calculating component-wise $C_d$ using Barrowman's method\cite{barrowman}. This would require adding a rotational degree of freedom to the trajectory simulation, as well as adding stability derivative constraints to the pseudo-objective function. This would also entail direct optimization of the design variables of the aerodynamic fins (including sweep line, root chord, tip chord, and panel span). If we include practical design problems such as fin flutter this could could possibly vastly increase the complexity of the problem. Additionally, Nelder-Mead may have difficulty with convergence with this number of design variables. Finally $g_0$ is presently assumed constant, and while this often seems a safe assumption in everyday experience, in actually it is a function of altitude. Thus the trajectory simulation fidelity could be improved by the addition of a gravity/geoditics model. The WGS84 model harmonic expansion of the gravitational field potential seems promising for this application. 
 
 \subsection{Feed System Improvements}
-
-The feed system for the simplex search model is simply a given mass value, and is not subject to optimization. This feed system is crucial to the function of the engine, and if not carefully designed can end up weighing a significant portion of the overall rocket weight. The feed system weight can lead to a potential issue with defining the center of pressure location and stability characteristics as well.
+Presently the feed system mass is simply a given a (very) approximate estimated mass value, and is not subject to optimization. However , in practice, the feed system mass should scale with the propulsion system thrust and chamber pressure. While there are numerous papers detailing mass and envelope estimation of feed system for large rocket engines, unfortunately there seems little published data for engines smaller than 50 kN. Given the strong impact of total dry mass on optimized GLOW this factor is potentially a large source of error.
 
 \subsection{Structural Model Improvements}
-
-Besides the fact that the carbon-composite airframe will double as the fuel tank liner in certain sections, the overall strength of the structure is of great consideration. The greatest structural loading will occur at the point of highest dynamic pressure, typically occurring 25 percent of the way up to the apogee depending on the speed and size of the rocket. To determine the loading at this point, CFD or a simplified analytical model is required. The aerodynamic shear, pressure, and acceleration are all considerations that lead to determining the stresses on the airframe at this point. In the optimization code, the structural loading is limited by constraining acceleration to below 15 g’s. This must be expanded on to include constraints on the maximum velocity of the rocket to ensure the maximum dynamic pressure and structural stresses are not too high.
-
-\subsection{Stability Model Addition}
-
-When considering the stability of a rocket, the center of pressure location with respect to the center of mass is very important. If the center of pressure is closer to the rocket nose than the center of mass, the rocket will have a tendency to want to flip, leading to a new design constraint that restricts the center of pressure from moving past the center of mass. The center of pressure also must not be too far behind the center of mass, otherwise the rocket will be impossible to maneuver in the thicker portions of the atmosphere. 
-
-As the fuel is drained from the rocket, the center of mass will move. Due to the fact that the feed system is expected to be nearly a quarter of the overall wet mass of the rocket, the center of mass will stay near the end of the rocket throughout the flight and move towards the rear as the fuel is drained. There is potential for the center of mass to move behind the center of pressure because of this, coupled with the fact that the center of pressure will remain fairly consistent throughout flight. The considerations for this were omitted from the optimization model, but merits addition to the model.
-
-1-DoF simulation optimization of system parameters, but also potentially the trajectory itself (control vector, gain scheduling, etc.)
+Besides the fact that the carbon-composite airframe will double as the fuel tank liner in certain sections, the overall strength of the structure is of great consideration. The greatest structural loading will occur at the point of highest dynamic pressure, occurs just after Mach 1 according to the simulation in Figure \ref{fig:trajectory}. To determine the loadings at this point, CFD or a simplified analytical model is required. The aerodynamic shear, pressure, wind buffeting, and acceleration are all considerations that lead to determining the combined stresses on the airframe at this point. In the optimization code, the structural loading is limited by constraining acceleration to below 15 g’s. This must be expanded on to include constraints on the maximum velocity of the rocket to ensure the maximum dynamic pressure and structural stresses are not too high. Some post-hoc FEA analysis is also justified to determine that the carbon-composite propellant tanks will not fail with the planar density assumed in the trajectory dry mass model.
 
 \section{Conclusion}
-Focus on novelty of the problem. This will guide PSAS's technology development pathways, and inform requirements for future senior capstone projects sponsored by the organization.
+Clean-sheet design of small launch vehicles, of both the orbital and suborbital varieties, is an area of rapidly increasing interest. However there is little published work regarding optimization of such vehicles in the early conceptual design phase. However identifying feasible designs and relationships between different design variables early in the design process is crucial to mitigating cost and schedule risks. Given this motivation a simple and fast, high-level code for design optimization of university group scaled sub-orbital rockets was developed using Python. The code benchmarks well compared with historical rocket designs and highlights exciting paths forward in terms of technology development for such vehicles. Given PSAS's interested in building the first university rocket to fly about the 100 km `threshold of space' this work will guide the groups technology development pathways, and inform requirements for future senior capstone projects sponsored by the organization for years to come.
 
 \begin{thebibliography}{9}% maximum number of references (for label width)
 %cite ideas: a few similar MDO papers, envelope estimation, scipy, PSAS
+\bibitem{dare}
+{\it Delft Aerospace Rocket Engineering.} DARE. Accessed June 5, 2016. http://dare.tudelft.nl/\\
+
 \bibitem{PSAS}
-{\it Portland State Aerospace.} PSAS. Accessed February 25, 2016. http://psas.pdx.edu.\\
+{\it Portland State Aerospace Society.} PSAS. Accessed February 25, 2016. http://psas.pdx.edu.\\
 
 \bibitem{Fastpass}
- Szedula, J.A., FASTPASS: A Tool For Launch Vehicle Synthesis, AIAA-96-4051-CP, 1996.\\
+Szedula, J.A., {\it FASTPASS: A Tool For Launch Vehicle Synthesis}, AIAA-96-4051-CP, 1996.\\
 
 \bibitem{SWORD}
-Hempel, P. R., Moeller C. P., and Stuntz L. M., “Missile Design Optimization Experience And Developments”, AIAA-94-4344,1994-CP.\\
+Hempel, P. R., Moeller C. P., and Stuntz L. M., {\it “Missile Design Optimization Experience And Developments”}, AIAA-94-4344,1994-CP.\\
 
-\bibitem{Taguchi}
-Stanley, D. O., Unal, R., and Joyner, C. R., "Application of Taguchi Methods to Dual Mixture Ratio Propulsion System Optimization for SSTO Vehicles," Journal of Spacecraft and Rockets, Vol. 29, No. 4, 1992, pp. 453-459.\\
+\bibitem{openrocket}
+{\it OpenRocket}, Accessed June 5, 2016. http://openrocket.sourceforge.net/documentation.html
 
-\bibitem{RSM}
-Stanley, D. 0., Engelund. W. C., Lepsch. R. A., McMillin, M. L.Wt K. E.. Powell. R. W., Guinta. A. A., and Unal, R. "Rocket-Powered Single Stage Vehicle Configuration Selection and Design," Journal of Spacecraft and Rockets,Vol. 31, No. 5, 1994. pp. 792-798; also AIAA Paper93-Feb. 1993.\\
-
-\bibitem{genetic}
-Anderson, m., Burkhalter J., and Jenkins R “Multidisciplinary Intelligence Systems Approach To Solid Rocket Motor Design, Part I: Single And Dual Goal Optimization. AIAA 2001-3599, July, 2001.\\
+\bibitem{jsbsim}
+Berndt, Jon S., {\it JSBSim: An Open Source Flight Dynamics Model in C++}. AIAA Modeling and Simulation Technologies Conference and Exhibit. Aug. 2004.
 
 \bibitem{Git}
-{\it Oregon Small Satellite Project.} GitHub. Accessed February 25, 2016. https://github.com/oresat.\\
+{\it Portland State Aerospace Society.} GitHub. Accessed February 25, 2016. https://github.com/psas.\\
+
+\bibitem{aerobee}
+Pressly, E. C., et al. {\it Sounding rockets for transporting scientific instruments in nearly vertical trajectory}, NASA, United States 1965, (pg. 58).\\
+
+\bibitem{CEA}
+Gordon, Sanford, and Bonnie J. McBride, {\it Computer program for calculation of complex chemical equilibrium compositions and applications}. National Aeronautics and Space Administration, Office of Management, Scientific and Technical Information Program, 1996.
+
+\bibitem{Taguchi}
+Stanley, D. O., Unal, R., and Joyner, C. R., {\it "Application of Taguchi Methods to Dual Mixture Ratio Propulsion System Optimization for SSTO Vehicles"}, Journal of Spacecraft and Rockets, Vol. 29, No. 4, 1992, pp. 453-459.\\
+
+\bibitem{RSM}
+Stanley, D. O., Engelund. W. C., Lepsch. R. A., McMillin, M. L.Wt K. E.. Powell. R. W., Guinta. A. A., and Unal, R., {\it "Rocket-Powered Single Stage Vehicle Configuration Selection and Design"}, Journal of Spacecraft and Rockets,Vol. 31, No. 5, 1994. pp. 792-798; also AIAA Paper93-Feb. 1993.\\
+
+\bibitem{genetic}
+Anderson, M., Burkhalter J., and Jenkins R., {\it “Multidisciplinary Intelligence Systems Approach To Solid Rocket Motor Design, Part I: Single And Dual Goal Optimization"}. AIAA 2001-3599, July, 2001.\\
+
+\bibitem{scipy}
+Eric Jones and Travis Oliphant and Pearu Peterson and others, {\it SciPy: Open source scientific tools for Python}, 2001, Accessed June 5, 2016. http://www.scipy.org/.\\
+
+\bibitem{barrowman}
+Barrowman, James S. {\it "The practical calculation of the aerodynamic characteristics of slender finned vehicles."} NASA, United States, 1967.
 
 \end{thebibliography}
 
 \newpage
 \pagestyle{empty}
 \section*{Appendix}
-Note that these codes can also be found on Github at ...
+Note that these codes can also be found on Github at\\ https://github.com/psas/liquid-engine-analysis/tree/master/optimization.
 \subsection{Trajectory Simulation Python Script}
 \begin{lstlisting}[language=Python]
 from math import sqrt, pi, exp, log, cos
