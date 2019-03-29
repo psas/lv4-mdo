@@ -5,9 +5,9 @@ import os
 from sys import platform as _platform
 
 # Assumptions
-Isp      =   230.0      # s       Specific Impulse
-OF       =     1.6      #         O/F ratio
-r        =     0.0762   # m       Radius of the tanks (ID of rocket)
+Isp      =   254.0      # s       Specific Impulse
+OF       =     1.3      #         O/F ratio
+r        =     0.122286   # m       Radius of the tanks (ID of rocket)
 
 # Physics
 g_0      =     9.80665  # kg.m/s^2     Standard gravity
@@ -25,15 +25,15 @@ rho_lox  =   1141.0   # kg/m^3  Desity of LOX
 rho_eth  =    852.3   # kg/m^3  Desity of Ethanol (with 70% H2O)
 
 # Extra
-m_engine =      2.0   # kg
+m_engine =      3.0   # kg
 l_engine =      0.300 # m
 m_plumb  =      5.0   # kg
 l_plumb  =      0.350 # m
 gaps     =      0.100 # m
 
 # Variables (Change these!)
-Thrust    =  3000.0    # N       Thrust of engine, assume a value between 1-6 kN
-Burn_time =    30.0    # s       Duration of the burn, assume a value between 30 and 90 s
+Thrust    =  4700.0    # N       Thrust of engine, assume a value between 1-6 kN
+Burn_time =   56.0    # s       Duration of the burn, assume a value between 30 and 90 s
 Tank      = CF         # Choose from above table, ignore steel
 factor_of_safety = 2   # factor of saftey
 
@@ -44,6 +44,7 @@ factor_of_safety = 2   # factor of saftey
 
 # Total mass flow rate
 mdot = Thrust / (g_0*Isp)
+#mdot=1.66
 
 # Mass flow for each propllent
 mdot_o = mdot / (1 + (1/OF))

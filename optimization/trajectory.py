@@ -3,17 +3,16 @@ import numpy as np
 import csv
 
 # A simple forward Euler integration for rocket trajectories
-def dry_mass(L, dia):
+def dry_mass(tankmass):
     m_avionics = 3.3                       # Avionics mass        [kg]
     m_recovery = 4                         # Recovery system mass [kg]
-    m_payload = 2                          # Payload mass         [kg]
-    m_tankage = 20.88683068354522*L*dia*pi # Tank mass Estimation [kg]
-    m_engine = 2                           # Engine mass          [kg]
+    m_payload = 4                          # Payload mass         [kg]
+    m_tankage = tankmass # Tank mass Estimation [kg]
+    m_engine = 3                           # Engine mass          [kg]
     m_feedsys = 20                         # Feed system mass     [kg]
     m_airframe  = 6                        # Airframe mass        [kg]
-    #return (m_avionics + m_recovery + m_payload + m_tankage 
-    #+ m_engine + m_feedsys + m_airframe)   # Dry mass             [kg]
-    return 175
+    return (m_avionics + m_recovery + m_payload + m_tankage 
+        + m_engine + m_feedsys + m_airframe)   # Dry mass
 
 def propellant_mass(A, L, OF=1.3):
     rho_alc = 852.3             # Density, ethanol fuel [kg/m^3]
@@ -21,7 +20,7 @@ def propellant_mass(A, L, OF=1.3):
     L_lox = L/(rho_lox/(rho_alc*OF) + 1)
     m_lox = rho_lox*L_lox*A     # Oxidizer mass         [kg]
     m_alc = rho_alc*(L-L_lox)*A # Fuel mass             [kg]
-    return m_alc + m_lox        # Propellant Mass       [kg]
+    return m_lox, m_alc         # Propellant Mass       [kg]
 
 def std_at(h):                  # U.S. 1976 Standard Atmosphere
     if h < 11000:
@@ -67,48 +66,51 @@ def drag(x, v, A, Ma, C_d_t, Ma_t):
     D = q * C_d * A                                             # Drag force       [N]
     return D, q
 
-def trajectory(L, mdot, dia, p_e, p_ch=350, T_ch=3500, ke=1.3, Re=349, x_init=0):
+def trajectory(L, mdot, dia, p_e, p_ch=350, T_ch=3500, ke=1.3, Re=349, x_init=0, tankmass=30., propmass=0):
     # Note combustion gas properties ke, Re, T_ch, etc, determined from CEA
     # Physical constants
-    g_0 = 9.81 # Gravitational acceleration [m/s^2]
-    dt = 1     # Time step                  [s]
+    g_0 = 9.80665 # Gravitational acceleration [m/s^2]
+    dt = .1     # Time step                  [s]
     ka = 1.4   # Ratio of specific heats, air  
     Ra = 287.1 # Avg. specific gas constant (dry air)
     
     # LV4 design variables
     dia = dia*0.0254       # Convert in. to m
     A = pi*(dia/2)**2      # Airframe frontal area projected onto a circle of diameter variable dia
-    m_dry = dry_mass(L, A) # Dry mass, call from function dry_mass()
+    m_dry = dry_mass(tankmass) # Dry mass, call from function dry_mass()
     mdot = mdot            # Mass flow rate [kg/s]
     p_ch = p_ch*6894.76    # Chamber pressure, convert psi to Pa
     p_e = p_e*1000         # Exit pressure, convert kPa to Pa
 
     # Initial conditions
     x = [x_init]
-    v = [0]
-    a = [0]
-    t = [0]
+    v = [0.]
+    a = [0.]
+    t = [0.]
     rho = [std_at(x[-1])[1]]
     p_a = [std_at(x[-1])[0]]
     T_a = [std_at(x[-1])[2]]
-    m_prop = [propellant_mass(A, L)]
+    if propmass==0:
+        m_prop = [sum(propellant_mass(A, L))]
+    else:
+        m_prop = [propmass]
     m = [m_dry + m_prop[-1]]
     (F, A_t, A_e, Ve) = thrust(x[-1], p_ch, T_ch, p_e, ke, Re, mdot)
     F = [F]
-    D = [0]
-    Ma = [0]
-    q = [0]
+    D = [0.]
+    Ma = [0.]
+    q = [0.]
     r = (m_prop[0] + m_dry)/m_dry # Mass ratio
     dV1 = Ve*log(r)/1000          # Tsiolkovsky's bane (delta-V)
-    
+    mdot_old = mdot
     # Drag coefficient look up
     C_d_t = []
     Ma_t = []
     f = open('CD_sustainer_poweron.csv') # Use aerobee 150 drag data
     aerobee_cd_data = csv.reader(f, delimiter=',')
     for row in aerobee_cd_data:
-        C_d_t.append(row[1])
-        Ma_t.append(row[0])
+        C_d_t.append(float(row[1]))
+        Ma_t.append(float(row[0]))
 
     while True:
         p_a.append(std_at(x[-1])[0])
