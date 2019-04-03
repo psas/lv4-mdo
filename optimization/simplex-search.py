@@ -1,26 +1,42 @@
+# could improve:
+# constraints
+# initial design vectors
+# rocket evaluator
+# minimizer
+# figure plotting/saving
+# overall redundancy reduction
+
 #class simplex: # Nelder-Mead simplex search
+
 import numpy as np
 import trajectory
-import liquid_motor
+import openrocket_interface as openrkt
+from math import sqrt, pi, exp, log, cos
+import math as m # is this sanitary? is this needed? 'm' is a variable name too...
+from scipy.optimize import minimize
+global cons_TWR, cons_S_crit, cons_accel, cons_LD, cons_alt, X0, m0 # i'm sorry for global vars...
 
-global cons_TWR, cons_S_crit, cons_accel, cons_LD, cons_alt, X0, m0
-
-#CHANGE CONSTRAINTS HERE
-cons_TWR = 3       # TWR constraint
-cons_S_crit = 0.4#0.35 # Critical pressure ratio constraint
+#CHANGE CONSTRAINTS HERE, these have been changed from the MDO, need sanity check from ME's
+time_step = .1 # change time-step for trajectorys
+cons_mass = 400     # GLOW constraint
+cons_TWR = 1.5       # TWR constraint
+cons_S_crit = 0.35  #0.35 # Critical pressure ratio constraint
 cons_accel = 15    # Max acceleration constraint
-cons_LD = 15       # L/D ratio constraint
-cons_alt = 100000  # Min altitude constraint
-cons_F = 6
+cons_LD = 18       # L/D ratio constraint
+cons_alt = 115000  # Min altitude constraint
+cons_thrust = 5.5         # max average thrust
+cons_ls = 25.       # min launch speed, m/s
 
 ##CHANGE INITIAL DESIGN GUESS HERE
-L = 1.47    # Tank length (m)
-mdot = 2.393 #0.453592 * 0.9 * 5 # Propellant mass flow rate (kg/s)
-dia = 12.204  # Rocket diameter (in)
-p_e = 45.458  # Pressure (kPa)
-X0 = np.array([L, mdot, dia, p_e])
-m0 = trajectory.trajectory(X0[0], X0[1], X0[2], X0[3])[-4][0] # Initial guess GLOW
+L = 1.979   # Tank length (m)
+mdot = 2.318 #0.453592 * 0.9 * 5 # Propellant mass flow rate (kg/s)
+dia = 12.392  # Rocket diameter (in)
+p_e = 54.202  # Pressure (kPa)
+#X0 = np.array([L, mdot, dia, p_e]) #idk if this needs to be a np.array
+X0 = [L, mdot, dia, p_e]
+m0 = trajectory.trajectory(X0[0], X0[1], X0[2], X0[3], dt=time_step)[-5][0] # Initial guess GLOW
 
+# this function is deprecated pls ignore
 def search(f, x_start, max_iter = 100, gamma = 5, beta = 0.5, rp=100, a=10, epsilon = 1E-6):
     
     """
@@ -84,9 +100,10 @@ def search(f, x_start, max_iter = 100, gamma = 5, beta = 0.5, rp=100, a=10, epsi
         
         # Break if any termination critera is satisfied
         if len(fb) == max_iter: # or term_check(x, xc, xw, N, rp, f_run) <= epsilon:
-            (alt, v, a, t, F, D, Ma, rho, p_a, T_a, TWR, ex, Ve, A_t, dV1, m, S_crit, q, m_prop) = sim.trajectory(xb[0], xb[1], xb[2], xb[3])
+            (alt, v, a, t, F, D, Ma, rho, p_a, T_a, TWR, ex, Ve, A_t, dV1, m, S_crit, q, m_prop, ls) = sim.trajectory(xb[0], xb[1], xb[2], xb[3])
             return f(x[f_run.index(sorted(f_run)[0])], rp), x[f_run.index(sorted(f_run)[0])], len(fb)
-        
+
+# this function is deprecated pls ignore        
 def term_check(N, rp, f_run, fxc): # Termination critera
     M = [0]*(N + 1)
     for i in range(0, N + 1):
@@ -96,26 +113,135 @@ def term_check(N, rp, f_run, fxc): # Termination critera
             M[i] = (f_run[i] - fxc)**2
     #return m.sqrt(((f(xb) - f(xc))**2 + (f(xnew) - f(xc))**2 + (f(xs) - f(xc))**2)/(N + 1))
     return m.sqrt(sum(M)/N)
-        
+
+#gets the index of the last thrust term before engine kicks
+def last_moment(F):
+    j = 0
+    fdex = 1 # init fdex is a kludge because optimizer crashed once
+    for thing in F:
+        if thing == 0:
+            fdex = j
+            break
+        j += 1
+    return fdex
+
+# basic exterior penalty function
+# evaluate a rocket design and trajectory
+# (a/b - 1): a < b
+# (1 - a/b): a > b
+def eval_rkt(ls, thrust, LD, TWR, S_crit, alt, gees, punisher=25):
+    # multiply all constraint violations
+    combined = punisher*(\
+    # max launch speed
+    1*max(0, 1 - ls/cons_ls)**2 + \
+    # min engine thrust
+    1*max(0, thrust/cons_thrust - 1)**2 + \
+    # min tank length / airframe diameter ratio
+    1*max(0, LD/cons_LD - 1)**2 + \
+    # max thrust / weight ratio
+    1*max(0, 1 - TWR/cons_TWR)**2 + \
+    # max Sommerfield constant constraint
+    1*max(0, 1 - S_crit/cons_S_crit)**2 + \
+    # max altitude
+    1*max(0, 1 - alt/cons_alt)**2 + \
+    # min top g's
+    1*max(0, gees/cons_accel - 1)**2) 
+    return combined
+
 # Pseudo-objective function
-def f(x, rp=25):
-    #x = np.array(x)
+# x is array of design parameters, n is degree of penalty function
+def f(x, n):
+    x = np.array(x)
     L = x[0]   # Rocket length (m)
     mdot = x[1] # Propellant mass flow rate (kg/s)
     dia = x[2] # Rocket diameter (in)
     p_e = x[3]  # Pressure (kPa)
-    (alt, v, a, t, F, D, Ma, rho, p_a, T_a, TWR, ex, Ve, A_t, dV1, m, S_crit, q, m_prop) = trajectory.trajectory(L, mdot, dia, p_e)
-    obj_func = m[0]/m0 + rp*(max(0, F[0]/(cons_F*1000) - 1)**2 + max(0, (L+2)/(dia*0.0254*cons_LD) - 1)**2 + \
-               max(0, -TWR/cons_TWR + 1)**2 + max(0, -S_crit/cons_S_crit + 1)**2 + \
-                             max(0, -alt[-1]/cons_alt + 1)**2 + max(0, max(abs(a))/(cons_accel*9.81) - 1)**2)   
-    #print "obj: ", obj_func, " alt: ",alt[-1]/1000, " F: ",F[0]/1000,"  L, mdot, dia, p_e: ", x
-    return obj_func
-
-# Results
-if __name__ == '__main__': # Testing
-    from math import sqrt, pi, exp, log, cos
-    import math as m
+    # get trajectory data from x
+    (alt, v, a, t, F, D, Ma, rho, p_a, T_a, TWR, ex, Ve, A_t, dV1, m, S_crit, q, m_prop, ls) = trajectory.trajectory(L, mdot, dia, p_e, dt=time_step)
+    #obj_func = m[0]/cons_mass # use this to minimize mass
+    #obj_func = 400/(Ve/9.8066) # or use this to maximize specific impulse
     
+    # or use this block to maximize total impulse
+    fdex = last_moment(F)
+    impulse = fdex/10*(F[fdex - 1]/1000 + F[0]/1000)/2
+    obj_func = (400/impulse)
+    
+    pen_func = eval_rkt(ls, F[0]/1000, (L+2)/(dia*0.0254), TWR, S_crit, alt[-1], max(abs(a))/9.81, 10^n)
+    sum_func = obj_func + pen_func
+    # print blocks are sanity checks so i'm not staring at a blank screen
+    print(L, mdot, dia, p_e, alt[-1])
+    print(obj_func, ' + ', pen_func, ' = ', sum_func)
+    return sum_func
+
+# we want to iterate our optimizer to get nice results, n is number of iterations
+# it gets weird for n > 8, I keep it around 3-7    
+def iterate(f, x_0):
+    n=1
+    x = x_0
+    for i in range(n):
+        print(i, ": \n")
+        #res = minimize(f, x, args=(i+1), method='Powell', options={'disp': True}) # this is a minimizer for monkeys
+        res = minimize(f, x, args=(i+1), method='nelder-mead', options={'disp': True, 'adaptive':True}) # this minimizer may or may not suck
+        x = res.x
+    return res
+
+# this creates a list of strings for relevant data of trajectory
+def print_results(res):
+    text_base = []
+    # Rename the optimized output
+    L = res.x[0]
+    mdot = res.x[1]
+    dia = res.x[2]
+    p_e = res.x[3]
+    
+    (alt, v, a, t, F, D, Ma, rho, p_a, T_a, TWR, ex, Ve, A_t, dV1, m, S_crit, q, m_prop, ls) = trajectory.trajectory(L, mdot, dia, p_e, dt=time_step) 
+    fdex = last_moment(F)
+    np.set_printoptions(precision=3) # this line may be deprecated, i copy-pasted most of this section
+    
+    text_base.append('\nOPTIMIZED DESIGN VECTOR')
+    text_base.append('\n-----------------------------')
+    text_base.append('\nx_optimized                                = ' + ', '.join([str(L), str(mdot), str(dia), str(p_e)])) # kind of a kludge
+    text_base.append('\nx_initial_guess                            = ' + ', '.join([str(X0[0]), str(X0[1]), str(X0[2]), str(X0[3])])) # kind of a kludge
+    text_base.append('\ndesign tankage length                      = {:.2f} m'.format(L))
+    text_base.append('\ndesign mass flow rate                      = {:.2f} kg/s'.format(mdot))
+    text_base.append('\ndesign airframe diameter                   = {:.2f} in.'.format(dia))
+    text_base.append('\ndesign nozzle exit pressure                = {:.2f} kPa'.format(p_e))
+    text_base.append('\niterations (of last iteration)             = ' + str(res.nit))
+    text_base.append('\ndesign GLOW                                = {:.1f} kg'.format(m[0]))
+    text_base.append('\nx0 GLOW                                    = {:.1f} kg'.format( \
+          trajectory.trajectory(X0[0], X0[1], X0[2], X0[3], dt=time_step)[-5][0]))
+
+    text_base.append('\n')
+    text_base.append('\nCONSTRAINTS')
+    text_base.append('\n-----------------------------')
+    text_base.append('\nL/D ratio (c.f. < {})                      = {:.2f}'.format(cons_LD, (L+2)/(dia*0.0254)))
+    text_base.append('\nSommerfield criterion (c.f. pe/pa >= {})   = {:.1f}'.format(cons_S_crit, S_crit))
+    text_base.append("\nMax acceleration (c.f. < {})               = {:.2f} g's".format(cons_accel, max(abs(a))/9.81))
+    text_base.append('\nTWR at lift off (c.f. > {})                = {:.2f}'.format(cons_TWR, TWR))
+    text_base.append('\naltitude at apogee (c.f. > {})             = {:.1f} km'.format(cons_alt, alt[-1]/1000))
+    text_base.append('\nspeed when leaving launch rail (c.f. > {}) = {:.1f} km/s'.format(cons_ls, ls))
+    text_base.append('\ndesign thrust (vacuum) (c.f. < {})         = {:.1f} kN'.format(cons_thrust, F[fdex - 1]/1000))
+
+    text_base.append('\n')
+    text_base.append('\nADDITIONAL INFORMATION')
+    text_base.append('\n-----------------------------')
+    text_base.append('\nmission time at apogee                     = {:.1f} s'.format(t[-1]))
+    text_base.append('\ndesign total propellant mass               = {:.3f} kg'.format(m_prop[0]))
+    text_base.append('\ndesign thrust (sea level)                  = {:.1f} kN'.format(F[0]/1000))
+    
+    text_base.append('\ndesign burn time                           = {} s'.format(fdex/10))
+    text_base.append('\ndesign expansion ratio                     = {:.1f}'.format(ex))
+    text_base.append('\ndesign throat area                         = {:.1f} in.^2'.format(A_t/0.0254**2))
+    text_base.append('\ndesign isp                                 = {:.1f} s'.format(Ve/9.81))
+    text_base.append('\ndesign chamber pressure                    = {:.1f} psi'.format(350))
+    text_base.append('\ndesign total impulse                       = {:.1f} kN*s'.format(fdex/10*(F[fdex - 1]/1000 + F[0]/1000)/2))
+    text_base.append('\ndesign dV                                  = {:.1f} km/s'.format(dV1))
+    text_base.append('\nestimated minimum required dV              = {:.1f} km/s'.format(sqrt(2*9.81*alt[-1])/1000))
+    return text_base
+
+# Results, this is the big boi function
+if __name__ == '__main__': # Testing  
+    #this block is deprecated
     """max_iter = 200
     rp = 50
     gamma = 6
@@ -123,15 +249,36 @@ if __name__ == '__main__': # Testing
     a = 5
     (f, x, it) = search(f, np.array(X0), max_iter, gamma, beta, rp, a)
     """
+    #res = optimize.basinhopping(f, X0) # idk why this is here
     
-    from scipy.optimize import minimize
-    #res = optimize.basinhopping(f, X0)    
-    #res = minimize(f, X0, method='nelder-mead', options={'adaptive':True})
-    res = minimize(f, X0, method='Powell', options={'disp': True})
+    # feed initial design into iterative optimizer, get best design
+    res = iterate(f, X0)
     
-    (alt, v, a, t, F, D, Ma, rho, p_a, T_a, TWR, ex, Ve, A_t, dV1, m, S_crit, q, m_prop) = trajectory.trajectory(res.x[0], res.x[1], res.x[2], res.x[3]) #, 500)   
+    # Rename the optimized output
+    L = res.x[0]
+    mdot = res.x[1]
+    dia = res.x[2]
+    p_e = res.x[3]
+    
+    # get trajectory info from optimal design
+    (alt, v, a, t, F, D, Ma, rho, p_a, T_a, TWR, ex, Ve, A_t, dV1, m, S_crit, q, m_prop, ls) = trajectory.trajectory(L, mdot, dia, p_e, dt=time_step)  
+    fdex = last_moment(F)
     print('\n')
+    print("params: ", res)
     
+    # get info about our trajectory and rocket
+    res_text = print_results(res)
+    for line in res_text:
+        print(line)
+ 
+    print('\n Making an OpenRocket engine!')
+    # create an openrocket file for our design (and print trajectory data!)
+    openrkt.make_engine(mdot, m_prop[0], dia, F[0], fdex/10, Ve/9.81, res_text)
+    
+    # functional code ends here
+
+    # this matplotlib nonsense is from the og script, nothing below here matters to me
+    # i just ignore it all, since it crashes if showing/saving are uncommented
     import matplotlib
     import matplotlib.pyplot as plt
     from matplotlib import rc
@@ -140,12 +287,6 @@ if __name__ == '__main__': # Testing
     #%matplotlib inline
     rc('font', **{'family': 'serif', 'serif': ['Computer Modern']})
     rc('text', usetex=True)
-    
-    # Rename the optimized output
-    L = res.x[0]
-    mdot = res.x[1]
-    dia = res.x[2]
-    p_e = res.x[3]
     
     pylab.rcParams['figure.figsize'] = (10.0, 10.0)
     f, (ax1, ax2, ax3, ax4, ax6, ax7, ax8) = plt.subplots(7, sharex=True)
@@ -180,54 +321,5 @@ if __name__ == '__main__': # Testing
     #ax8.yaxis.major.locator.set_params(nbins=6) 
     ax8.set_ylabel("LOX Tank Axial Load")
     ax8.set_xlabel("t (s)")
-    #plt.savefig('traj.svg')
-    #plt.show()
-    
-    
-    np.set_printoptions(precision=3)
-    print('\n')
-    print('OPTIMIZED DESIGN VECTOR')
-    print('-----------------------------')
-    print('x_optimized                                = ', res.x)
-    print('x_initial_guess                            = ', X0)
-    print('design tankage length                      = {0:.2f} m'.format(res.x[0]))
-    print('design mass flow rate                      = {0:.2f} kg/s'.format(res.x[1]))
-    print('design airframe diameter                   = {0:.2f} in.'.format(res.x[2]))
-    print('design nozzle exit pressure                = {0:.2f} kPa'.format(res.x[3]))
-    print('iterations                                 =', res.nit)
-    print('design GLOW                                = {0:.1f} kg'.format(m[0]))
-    print('x0 GLOW                                    = {0:.1f} kg'.format( \
-          trajectory.trajectory(X0[0], X0[1], X0[2], X0[3])[-4][0]))
-
-    print('\n')
-    print('CONSTRAINTS')
-    print('-----------------------------')
-    print('L/D ratio (c.f. < {})                      = {:.2f}'.format(cons_LD, (L+2)/(dia*0.0254)))
-    print('Sommerfield criterion (c.f. pe/pa >= {})   = {:.1f}'.format(cons_S_crit, S_crit))
-    print("Max acceleration (c.f. < {})               = {:.2f} g's".format(cons_accel, max(abs(a))/9.81))
-    print('TWR at lift off (c.f. > {})                = {:.2f}'.format(cons_TWR, TWR))
-    print('altitude at apogee                         = {0:.1f} km'.format(alt[-1]/1000))
-
-    print('\n')
-    print('ADDITIONAL INFORMATION')
-    print('-----------------------------')
-    print('mission time at apogee                     = {0:.1f} s'.format(t[-1]))
-    print('design total propellant mass               = {0:.3f} kg'.format(m_prop[0]))
-    print('design thrust (sea level)                  = {0:.1f} kN'.format(F[0]/1000))
-    j = 0
-    for thing in F:
-        if thing == 0:
-            fdex = j
-            break
-        j += 1
-    print('design thrust (vacuum)                     = {0:.1f} kN'.format(F[fdex - 1]/1000))
-    print('design burn time                           = {} s'.format(fdex/10))
-    print('design expansion ratio                     = {0:.1f}'.format(ex))
-    print('design throat area                         = {0:.1f} in.^2'.format(A_t/0.0254**2))
-    print('design isp                                 = {0:.1f} s'.format(Ve/9.81))
-    print('design chamber pressure                    = {0:.1f} psi'.format(350))
-    print('design total impulse                       = {0:.1f} kN*s'.format(j/10*(F[fdex - 1]/1000 + F[0]/1000)/2))
-    print('design dV                                  = {0:.1f} km/s'.format(dV1))
-    print('estimated minimum required dV              = {0:.1f} km/s'.format(sqrt(2*9.81*alt[-1])/1000))
-    print('\n Making an OpenRocket engine!')
-    liquid_motor.make_engine(mdot, m_prop[0], dia, F[fdex - 1], fdex/10, Ve/9.81)
+    #plt.savefig('traj.svg') # this crashes
+    #plt.show() # this crashes

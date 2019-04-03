@@ -1,4 +1,13 @@
 #!/usr/bin/env python
+# could improve:
+# subsystem estimates
+# fudge factors
+# thrust estimates and curve
+# print relevant data (look at the old file for figures of merit)
+# idiot-proofing
+# extendable file io
+# make engine file with xml library
+
 from __future__ import print_function
 from math import pi, log, sqrt
 import os
@@ -28,9 +37,22 @@ l_plumb  =      0.350 # m
 gaps     =      0.100 # m
 
 # Variables (Change these!)
+loss_factor = 1    # assume thrust is less than ideal
 Tank      = CF         # Choose from above table, ignore steel
 factor_of_safety = 2   # factor of saftey
 OF       =     1.3      #         O/F ratio
+
+def all_files(directory):
+    for path, dirs, files in os.walk(directory):
+        for f in sorted(files):
+            yield os.path.join(path, f)
+
+def get_index():
+    prefix = "./rocket_farm/"
+    ork_files = [f for f in all_files(prefix)
+               if f.endswith('.ork')]
+    previous_iteration_index = len(ork_files)
+    return previous_iteration_index + 1
 
 def split_mdot(mdot):
     mdot_o = mdot / (1 + (1/OF))
@@ -62,15 +84,19 @@ def split_tanks(prop_mass, total_dia):
     l_f += l_f*0.1 # add 10% for ullage
     return r, l_o, l_f
 
-# ### Tank Mass
-def tank_mass(l, tank, r):
-    s_area = 2*pi*r*(l + r) #surface area of tank
+# tank thickness
+def tank_thickness(tank, r):
     P_i = 3.042e6  # Tank pressure in Pa, assuming pressure fed with regulator (roughly 441 psig)
     radius_o = r   # outer radius, meters
     design_stress = tank['Sy']/factor_of_safety
     radius_i = sqrt(design_stress * (radius_o**2) / ((2*P_i) + design_stress)) # inner radius
     thickness = radius_o - radius_i
-    #print("Tank thickness:        %5.1f mm" % (thickness*1000))
+    return thickness
+
+# ### Tank Mass
+def tank_mass(l, tank, r):
+    s_area = 2*pi*r*(l + r) #surface area of tank
+    thickness = tank_thickness(tank, r)
     material = s_area * thickness
     mass_realism_coefficient = 2 #fudge factor for design mass, includes contribution of tank structural lugs, feed system, stress concentraions, welds, slosh baffles etc.
     mass = material * tank['rho'] * mass_realism_coefficient
@@ -147,14 +173,49 @@ def nar_code(thrust, burn_time):
     print('NAR:              "%s" (%0.0f%%)' % (chr(66+nar_i), nar_percent*100))
     return chr(66+nar_i), nar_percent*100
 
-def make_engine(mdot, prop_mass, total_dia, Thrust, Burn_time, Isp):
+def print_characteristics(mdot, prop_mass, r, l_o, l_f, index, res_text):
+    # Mass flow for each propllent
+    mdot_o = mdot / (1 + (1/OF))
+    mdot_f = mdot / (1 + OF)
+    res_text.append("\nOx flow: . . . . . . . %7.3f kg/s" % mdot_o)
+    res_text.append("\nFuel flow:             %7.3f kg/s" % mdot_f)
+    # Propellent Mass for each propllent
+    mdot_o = prop_mass / (1 + (1/OF))
+    mdot_f = prop_mass / (1 + OF)
+    res_text.append("\nOx mass:               %5.1f kg" % M_o)
+    res_text.append("\nFuel mass: . . . . . . %5.1f kg" % M_f)
+    # dimensions of each tank
+    res_text.append("\nTank diameters:        %7.3 m" % r*2)
+    res_text.append("\nOx tank length: . . . .%7.3f m" % l_o)
+    res_text.append("\nFuel tank length:      %7.3f m" % l_f)
+    # Tank thickness for each tank (mm)
+    thickness_o = tank_thickness(Al, r)
+    thickness_f = tank_thickness(Tank, r)
+    res_text.append("\nOx tank thickness:        %5.1f mm" % (thickness_o*1000))
+    res_text.append("\nFuel tank thickness:        %5.1f mm" % (thickness_f*1000))
+    # Mass of each tank
+    m_tank_o = tank_mass(l_o, Al)
+    m_tank_f = tank_mass(l_f, Tank)
+    res_text.append("\nOx tank mass: . . . . .%5.1f kg" % m_tank_o)
+    res_text.append("\nFuel tank mass:        %5.1f kg" % m_tank_f)
+    with open('./rocket_farm/'+'psas_rocket_'+index+'_traj.txt', 'w') as traj:
+        for line in res_text:
+            traj.write(line)
+        traj.close()
+    
+    
+
+def make_engine(mdot, prop_mass, total_dia, Thrust, Burn_time, Isp, res_text):
+    index = str(get_index())
     r, l_o, l_f = split_tanks(prop_mass, total_dia)
+    print_characteristics(mdot, prop_mass, r, l_o, l_f, index, res_text)
+    Thrust *= loss_factor
     length = system_length(prop_mass, total_dia)
     M_prop = prop_mass
     dry_mass = system_mass(prop_mass, total_dia)
     file_head = """<engine-database>
   <engine-list>
-    <engine  mfg="PSAS" code="P10000-BS" Type="Liquid" dia="{diameter}" len="{length}"
+    <engine  mfg="PSAS" code="{code}" Type="Liquid" dia="{diameter}" len="{length}"
     initWt="{total_mass}" propWt="{M_prop}" delays="0" auto-calc-mass="0" auto-calc-cg="0"
     avgThrust="{thrust}" peakThrust="{thrust}" throatDia="0." exitDia="0." Itot="{impulse}"
     burn-time="{burn_time}" massFrac="{m_frac}" Isp="{Isp}" tDiv="10" tStep="-1." tFix="1"
@@ -162,7 +223,8 @@ def make_engine(mdot, prop_mass, total_dia, Thrust, Burn_time, Isp):
     cgStep="-1." cgFix="1">
     <comments>Made up</comments>
     <data>
-""".format(**{'diameter': r*2*1000,
+""".format(**{'code': 'PSAS'+index,
+                  'diameter': r*2*1000,
                   'length': length*1000,
                   'total_mass': (M_prop+dry_mass)*1000,
                   'M_prop': M_prop*1000,
@@ -201,11 +263,12 @@ def make_engine(mdot, prop_mass, total_dia, Thrust, Burn_time, Isp):
     elif "win" in _platform:
         prefix = os.path.join(os.getenv("APPDATA"), "OpenRocket/ThrustCurves/")
     
-    with open(os.path.join(prefix, 'psas_motor.rse'), 'w') as eng:
+    with open(os.path.join(prefix, 'psas_motor_'+index+'.rse'), 'w') as eng:
         eng.write(file_head)
         for d in data:
             eng.write(d)
         eng.write(file_tail)
-    bodybuilder.update_body(r, l_o, l_f)
+        eng.close()
+    bodybuilder.update_body(index, r, l_o, l_f)
     print("Reopen OpenRocket to run simulation")
     
