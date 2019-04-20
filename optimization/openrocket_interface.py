@@ -7,11 +7,12 @@
 # extendable file io
 # make engine file with an xml library
 
-from __future__ import print_function #not sure if i even need this, for python2
+from __future__ import print_function #not sure if i even need this, for python2 to use python3 style printing
 from math import pi, log, sqrt
 import os
 from sys import platform as _platform
 import xml.etree.ElementTree as ET # xml library
+from zipfile import ZipFile
 
 rkt_prefix = "./rocket_farm/" # this is where rockets live
 
@@ -45,19 +46,27 @@ OF = 1.3      # O/F ratio
 
 # unpack rocket template
 def unzip():
-    os.system('unzip psas_rocket.ork')
+    with ZipFile('psas_rocket.ork') as myzip:
+        myzip.extract('rocket.ork')
 
 # package our new rocket
 def zipit(index):
-    os.system('zip -m '+rkt_prefix+'psas_rocket_'+index+'.ork rocket.ork')
+    with ZipFile(rkt_prefix+'psas_rocket_'+index+'.ork', 'w') as myzip:
+        myzip.write('rocket.ork')
+    if 'linux' in _platform:
+        os.system('rm rocket.ork')
+    elif "darwin" in _platform:
+        os.system('rm rocket.ork')
+    elif "win" in _platform:
+        os.system('del rocket.ork')
 
-# pulls all files from given directory
+# pulls all file references from given directory
 def all_files(directory):
     for path, dirs, files in os.walk(directory):
         for f in sorted(files):
             yield os.path.join(path, f)
 
-# counts how many rockets are in directory and increments by 1
+# counts how many rockets are in directory and then increments by 1
 def get_index():
     ork_files = [f for f in all_files(rkt_prefix)
                if f.endswith('.ork')]
@@ -159,20 +168,20 @@ def dry_c_of_m(prop_mass, total_dia):
 # The mass and cm change over time.
 # In[7]:
 # Total mass (including propellant) at a time
-def mass(total_propellant, mdot, dt):
-    m = total_propellant - (mdot*dt)
+def mass(total_propellant, mdot, t):
+    m = total_propellant - (mdot*t)
     return m
 
 # Total center of mass (including propellant) at a time
-def c_of_m(prop_mass, total_dia, mdot, dt):
+def c_of_m(prop_mass, total_dia, mdot, t):
     M_o_0, M_f_0 = split_prop_mass(prop_mass)
     mdot_o, mdot_f = split_mdot(mdot)
     r, l_o, l_f = split_tanks(prop_mass, total_dia)
     dry_cm = dry_c_of_m(prop_mass, total_dia)
     dry_mass = system_mass(prop_mass, total_dia)
     
-    m_o = M_o_0 - (mdot_o*dt)
-    m_f = M_f_0 - (mdot_f*dt)
+    m_o = M_o_0 - (mdot_o*t)
+    m_f = M_f_0 - (mdot_f*t)
     
     lcm_o = l_o - tank_length(m_o, rho_lox, r)/2.0
     lcm_f = l_o + gaps + l_f - tank_length(m_f, rho_eth, r)/2.0
@@ -274,9 +283,9 @@ def make_engine(mdot, prop_mass, total_dia, Thrust, Burn_time, Isp, res_text):
     
     data = []
     n = 100
-    res = Burn_time/float(n-1)
+    resolution = Burn_time/float(n-1)
     for i in range(n):
-        t = i * res
+        t = i * resolution
         data.append('     <eng-data  t="{t}" f="{thrust}" m="{mass}" cg="{cg}"/>\n'.format(**{
             't': t,
             'thrust': Thrust,
@@ -294,11 +303,12 @@ def make_engine(mdot, prop_mass, total_dia, Thrust, Burn_time, Isp, res_text):
     if 'linux' in _platform:
         home = os.path.expanduser("~")
         prefix =  os.path.join(home, '.openrocket/ThrustCurves/')
-    elif _platform == "darwin":
+    elif "darwin" in _platform:
         home = os.path.expanduser("~")
         prefix =  os.path.join(home, 'Library/Application Support/OpenRocket/ThrustCurves/')
     elif "win" in _platform:
-        prefix = os.path.join(os.getenv("APPDATA"), "OpenRocket/ThrustCurves/")
+        home = os.getenv("APPDATA")
+        prefix = os.path.join(home, "OpenRocket/ThrustCurves/")
     
     with open(os.path.join(prefix, 'psas_motor_'+index+'.rse'), 'w') as eng:
         eng.write(file_head)
@@ -307,5 +317,5 @@ def make_engine(mdot, prop_mass, total_dia, Thrust, Burn_time, Isp, res_text):
         eng.write(file_tail)
         eng.close()
     update_body(index, r, l_o, l_f)
-    print("Reopen OpenRocket to run simulation")
+    print("Reopen OpenRocket to run simulation.")
     

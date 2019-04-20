@@ -11,16 +11,17 @@ import csv
 
 # Subsystem masses, needs sanity check from dirty ME's
 def dry_mass(tankmass):
-    m_nosecone = 25                        # nosecone weight    [kg]
-    m_avionics = 3                       # Avionics mass        [kg]
-    m_recovery = 3                         # Recovery system mass [kg]
-    m_payload = 3                          # Payload mass         [kg]
-    m_tankage = tankmass # Tank mass Estimation [kg]
-    m_engine = 2                           # Engine mass          [kg]
-    m_feedsys = 12                         # Feed system mass     [kg]
-    m_airframe  = 4                        # Airframe mass        [kg]
-    return (m_nosecone + m_avionics + m_recovery + m_payload + m_tankage 
-        + m_engine + m_feedsys + m_airframe)   # total Dry mass
+    m_nosecone = 30 + 0.1                        # nosecone weight    [kg]
+    m_recovery = 4 + 0.1 + 1.2 + 0.1                         # Recovery system mass [kg]
+    m_payload = 0.05 + 0.1                          # Payload mass         [kg]
+    m_avionics = 3 + 0.1                       # Avionics mass        [kg]
+    m_tankage = tankmass # Tank mass Estimation [kg] # avg 30 kg
+    m_engine = 3 + 0.1 + 0.1                         # Engine mass          [kg] #CHECK THIS
+    m_feedsys = 5 + 10                         # Feed system mass     [kg] #CHECK THIS, i'm including plumbing
+    m_airframe  = 4.3 + 0.99 + 0.99 + 0.45 + 0.99 + 3.6 + 2.4 + 1.5                # Airframe mass        [kg]
+    m_fins = 4.2                              # total fin mass [kg] #estimate from openrocket
+    return (m_nosecone + m_recovery + m_payload + m_avionics + m_tankage 
+        + m_engine + m_feedsys + m_airframe + m_fins)   # total Dry mass
 
 # Propellant masses
 def propellant_mass(A, L, OF=1.3):
@@ -101,10 +102,13 @@ def trajectory(L, mdot, dia, p_e, p_ch=350, T_ch=3500, ke=1.3, Re=349, x_init=0,
     # Design constant
     p_ch = p_ch*6894.76    # Chamber pressure, convert psi to Pa
     
-    #launch site constants
+    # launch site constants
     off_rail = False
     rail_height = 60. * 0.3048 # 60 ft, convert to m
     launch_speed = 0. # kludge because optimizer crashed once
+    
+    # engine cut-off variables
+    motor_burnout = False
     
     # LV4 design variables
     L = L                  # length of both tanks of propellant, in m
@@ -174,12 +178,17 @@ def trajectory(L, mdot, dia, p_e, p_ch=350, T_ch=3500, ke=1.3, Re=349, x_init=0,
                 off_rail = True
                 
         else: # coasting phase
+            if (motor_burnout == False) and (m_prop[-2] > 0): # no propellant now, did we have it last moment?
+                motor_burnout = True
+                # here we want to calculate CoM and CoP to get stability
+                # we will spit stability out of traj func
+                #this is mostly just a hook for later usage
             Ve = thrust(x[-1], p_ch, T_ch, p_e, ke, Re, mdot_old)[3]
             F.append(0)
             mdot = 0
             m_prop[-1] = 0
 
-        # kind of an ugly method but it works
+        # kind of an simple method but it works
         q.append(drag(x[-1], v[-1], A, Ma[-1], C_d_t, Ma_t)[1])
         D.append(drag(x[-1], v[-1], A, Ma[-1], C_d_t, Ma_t)[0])
         a.append((F[-1] - D[-1])/m[-1] - g_0)
