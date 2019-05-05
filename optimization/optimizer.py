@@ -14,12 +14,20 @@ from math import sqrt, pi, exp, log, cos
 import math as m # is this sanitary? is this needed? 'm' is a variable name too...
 from scipy.optimize import minimize
 global cons_TWR, cons_S_crit, cons_accel, cons_LD, cons_alt, X0, m0 # i'm sorry for global vars...
+global allvectors, cons_mass
 
-#CHANGE CONSTRAINTS HERE, these have been changed from the MDO, need sanity check from ME's
-time_step = .1 # change time-step for trajectorys
-g_0 = 9.80665 # gravity
+# SIMULATION AND OPTIMIZATION PARAMETERS
+time_step = 0.1 # change time-step for trajectorys
+iterations = 2
 
-cons_mass = 200     # GLOW constraint
+##CHANGE INITIAL DESIGN GUESS HERE
+L = 1.72    # Tank length (m)
+mdot = 2.77 # Propellant mass flow rate (kg/s)
+dia = 13.11  # Rocket diameter (in)
+p_e = 47.23  # Pressure (kPa)
+
+#CHANGE CONSTRAINTS HERE
+cons_mass = trajectory.trajectory(L, mdot, dia, p_e, dt=time_step)[-5][0]     # GLOW constraint
 cons_totimp = 400   # total impulse constraint
 
 cons_ls = 24.       # min launch speed constraint, m/s
@@ -29,19 +37,16 @@ cons_S_crit = 0.35 # Critical pressure ratio constraint
 cons_accel = 15    # Max acceleration constraint
 cons_LD = 15       # L/D ratio constraint
 cons_alt = 100000  # Min altitude constraint
-cons_thrust = 5         # max average thrust
+cons_thrust = 4         # max average thrust
 
 # constants
 nose_l = 1.25 # m
 subsys_l = 2.3 # m
-
-##CHANGE INITIAL DESIGN GUESS HERE
-L = 1.979    # Tank length (m)
-mdot = 2.665 # Propellant mass flow rate (kg/s)
-dia = 12.77  # Rocket diameter (in)
-p_e = 42.79  # Pressure (kPa)
+g_0 = 9.80665 # gravity
 
 X0 = np.array([L, mdot, dia, p_e])
+allvectors = [] # array for all design vecs
+
 
 # calculates length-diameter ratio
 def ld_ratio(L, dia):
@@ -101,6 +106,7 @@ def eval_rkt(ls, thrust, LD, TWR, S_crit, alt, gees, punisher=25):
 # Pseudo-objective function
 # x is array of design parameters, n is degree of penalty function
 def f(x, n):
+    global allvectors
     L = x[0]   # Tank length (m)
     mdot = x[1] # Propellant mass flow rate (kg/s)
     dia = x[2] # Rocket diameter (in)
@@ -125,22 +131,28 @@ def f(x, n):
     sum_func = obj_func + pen_func
     
     # print blocks are sanity checks so i'm not staring at a blank screen
-    print(L, mdot, dia, p_e, alt[-1])
-    print(obj_func, ' + ', pen_func, ' = ', sum_func)
+    #print(L, mdot, dia, p_e, alt[-1])
+    #print(obj_func, ' + ', pen_func, ' = ', sum_func)
+    
+    allvectors.append(x)
     
     return sum_func
 
 # we want to iterate our optimizer to get nice results  
-def iterate(f, x_0):
-    n=2 # number of iterations, it gets weird for n > 8, I keep it around 2-6  
+# n = number of iterations, it gets weird for n > 8, I keep it around 2-6  
+def iterate(f, x_0, n):
     x = x_0 # initial design vector
     
     for i in range(n):
-        print("Iteration ",i, ": \n")
+        print("Iteration " + str(i+1) + ":")
         #res = minimize(f, x, args=(i+1), method='Powell', options={'disp': True}) # this is a minimizer for brute-force monkeys
         res = minimize(f, x, args=(i+1), method='nelder-mead', options={'disp': True, 'adaptive':True}) # this minimizer uses simplex method
         x = res.x # feed optimal design vec into next iteration
-        
+        cons_mass = trajectory.trajectory(x[0], x[1], x[2], x[3], dt=time_step)[-5][0] #update mass constraint
+        print("Propellant tube length (m): "+str(x[0]))
+        print("Mass flow rate (kg/s): "+str(x[1]))
+        print("Airframe diameter (in): "+str(x[2]))
+        print("Exit pressure (kPa): "+str(x[3]))
     return x
 
 # this creates a list of strings for relevant data of trajectory
@@ -161,7 +173,7 @@ def print_results(res):
     text_base.append('\nOPTIMIZED DESIGN VECTOR')
     text_base.append('\n-----------------------------')
     text_base.append('\nx_initial_guess                            = ' + ', '.join([str(X0[0]), str(X0[1]), str(X0[2]), str(X0[3])])) # kind of a kludge
-    text_base.append('\nx0 GLOW                                    = {:.1f} kg'.format( \
+    text_base.append('\ninitial guess GLOW                                    = {:.1f} kg'.format( \
           trajectory.trajectory(X0[0], X0[1], X0[2], X0[3], dt=time_step)[-5][0]))
     text_base.append('\nx_optimized                                = ' + ', '.join([str(L), str(mdot), str(dia), str(p_e)])) # kind of a kludge
     text_base.append('\ndesign GLOW                                = {:.1f} kg'.format(m[0]))
@@ -187,12 +199,12 @@ def print_results(res):
     text_base.append('\nmission time at apogee                     = {:.1f} s'.format(t[-1]))
     text_base.append('\ndesign total propellant mass               = {:.3f} kg'.format(m_prop[0]))
     text_base.append('\ndesign thrust (sea level)                  = {:.1f} kN'.format(F[0]/1000))
-    text_base.append('\ndesign burn time                           = {} s'.format(fdex/10))
+    text_base.append('\ndesign burn time                           = {} s'.format(fdex*time_step))
     text_base.append('\ndesign expansion ratio                     = {:.1f}'.format(ex))
     text_base.append('\ndesign throat area                         = {:.1f} in.^2'.format(A_t/0.0254**2))
     text_base.append('\ndesign isp                                 = {:.1f} s'.format(Ve/g_0))
     text_base.append('\ndesign chamber pressure                    = {:.1f} psi'.format(350))
-    text_base.append('\ndesign total impulse                       = {:.1f} kN*s'.format(fdex/10*(F[fdex - 1]/1000 + F[0]/1000)/2))
+    text_base.append('\ndesign total impulse                       = {:.1f} kN*s'.format(fdex*time_step*(F[fdex - 1]/1000 + F[0]/1000)/2))
     text_base.append('\ndesign dV                                  = {:.1f} km/s'.format(dV1))
     text_base.append('\nestimated minimum required dV              = {:.1f} km/s'.format(sqrt(2*g_0*alt[-1])/1000))
     
@@ -250,15 +262,51 @@ def rocket_plot(t, alt, v, a, F, q, Ma, m):
     ax8.set_ylabel("LOX Tank Axial Load")
     ax8.set_xlabel("t (s)")
     
-    plt.savefig(openrkt.rkt_prefix +'traj'+str(openrkt.get_index())+'.svg')
+    plt.savefig(openrkt.rkt_prefix +'psas_rocket_'+str(openrkt.get_index()-1)+'_traj.svg')
     plt.show()
+
+# this creates some plots of the phase spaces of all our designs
+def phase_plot(L, mdot, D, p_e):
+    import pylab
+    import matplotlib.pyplot as plt
+    from mpl_toolkits.mplot3d import Axes3D
+
+    fig, (ax1, ax2, ax3) = plt.subplots(3, sharex=True)
+    
+    ax1.plot(L, D)
+    ax1.set_title('Design Vectors')
+    ax1.yaxis.major.locator.set_params(nbins=6)
+    ax1.set_xlabel("Length (m)")
+    ax1.set_ylabel("Diameter (in)")
+    
+    ax2.plot(mdot, p_e)
+    ax2.yaxis.major.locator.set_params(nbins=6)
+    ax2.set_xlabel("Mass flow rate (kg/s)")
+    ax2.set_ylabel("Exit pressure (kPa)")
+    
+    ax3.plot(mdot, L)
+    ax3.yaxis.major.locator.set_params(nbins=6)
+    ax3.set_xlabel("Mass flow rate (kg/s)")
+    ax3.set_ylabel("Length (m)")
+    
+    plt.show()
+    
+    fig2 = plt.figure()
+    ax = fig2.add_subplot(111, projection='3d')
+    
+    ax.plot(L, mdot, p_e)
+    ax.set_xlabel("Length (m)")
+    ax.set_ylabel("Mass flow rate (kg/s)")
+    ax.set_zlabel("Exit pressure (kPa)")
+    
+    plt.show()
+    
 
 # Results, this is the big boi function
 if __name__ == '__main__': # Testing  
     # feed initial design into iterative optimizer, get best design
-    res = iterate(f, X0)
+    res = iterate(f, X0, iterations)
     print("Done!")
-    print(res)
     
     # Rename the optimized output
     L = res[0]
@@ -276,7 +324,16 @@ if __name__ == '__main__': # Testing
     for line in res_text:
         print(line)
  
-    print('\n Making an OpenRocket rocket and corresponding engine!')
+    print('\nMaking an OpenRocket rocket and corresponding engine!')
     # create an openrocket file with matching engine for our design (and print/save trajectory data)
-    openrkt.make_engine(mdot, m_prop[0], dia, F[0], fdex/10, Ve/g_0, res_text)
+    openrkt.make_engine(mdot, m_prop[0], dia, F[0], fdex*time_step, Ve/g_0, res_text)
     rocket_plot(t, alt, v, a, F, q, Ma, m)
+    
+    # the ugly code below is to get us some nice plots of the phase space of design vectors
+    y0, y1, y2, y3 = [], [], [], []
+    for i in range(0, len(allvectors)):
+        y0.append(allvectors[i][0])
+        y1.append(allvectors[i][1])
+        y2.append(allvectors[i][2])
+        y3.append(allvectors[i][3])
+    phase_plot(y0, y1, y2, y3)
