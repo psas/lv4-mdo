@@ -17,36 +17,35 @@ global cons_TWR, cons_S_crit, cons_accel, cons_LD, cons_alt, X0, m0 # i'm sorry 
 global allvectors, cons_mass
 
 # SIMULATION AND OPTIMIZATION PARAMETERS
-time_step = 0.1 # change time-step for trajectorys
-iterations = 2
+time_step = 0.1 # change time-step for trajectory simulation
+iterations = 3 # number of escalating iterations, degenerate after ~8
 
 ##CHANGE INITIAL DESIGN GUESS HERE
-L = 1.72    # Tank length (m)
-mdot = 2.77 # Propellant mass flow rate (kg/s)
-dia = 13.11  # Rocket diameter (in)
-p_e = 47.23  # Pressure (kPa)
+L = 2.5    # Total tank lengths (m)
+mdot = 1.5 # Propellant mass flow rate (kg/s)
+dia = 6.  # Rocket diameter (in)
+p_e = 100.  # Exit Pressure (kPa)
 
 #CHANGE CONSTRAINTS HERE
-cons_mass = trajectory.trajectory(L, mdot, dia, p_e, dt=time_step)[-5][0]     # GLOW constraint
+cons_mass = trajectory.trajectory(L, mdot, dia, p_e, dt=time_step)[-5][0] # GLOW constraint taken from initial design GLOV
 cons_totimp = 400   # total impulse constraint
 
-cons_ls = 24.       # min launch speed constraint, m/s
+cons_ls = 24.       # min launch speed from 60' tower constraint, m/s
 
 cons_TWR = 2       # TWR constraint
 cons_S_crit = 0.35 # Critical pressure ratio constraint
 cons_accel = 15    # Max acceleration constraint
 cons_LD = 15       # L/D ratio constraint
 cons_alt = 100000  # Min altitude constraint
-cons_thrust = 4         # max average thrust
+cons_thrust = 4    # max average thrust
 
-# constants
+# physical constants
 nose_l = 1.25 # m
 subsys_l = 2.3 # m
 g_0 = 9.80665 # gravity
 
-X0 = np.array([L, mdot, dia, p_e])
+X0 = np.array([L, mdot, dia, p_e]) #numpy arrays are nicer
 allvectors = [] # array for all design vecs
-
 
 # calculates length-diameter ratio
 def ld_ratio(L, dia):
@@ -77,7 +76,7 @@ def last_moment(F):
 # (a/b - 1): a < b
 # (1 - a/b): a > b
 def eval_rkt(ls, thrust, LD, TWR, S_crit, alt, gees, punisher=25):
-    # multiply all constraint violations
+    # multiply all constraint violations, degenerate around 10^9
     combined = punisher*(\
     
     # max launch speed
@@ -117,7 +116,7 @@ def f(x, n):
     
     obj_func = m[0]/cons_mass # use this line to minimize mass
     
-    # or use the next 4 lines of code to maximize total impulse
+    # or use 3 of the next 4 lines of code to maximize total impulse
     #fdex = last_moment(F) # index of engine burnout
     #total_impulse = (fdex * time_step) * (F[fdex - 1] + F[0]) / 2 / 1000 # burn-time times average thrust in kN*s
     
@@ -130,11 +129,11 @@ def f(x, n):
     # add objective and penalty functions
     sum_func = obj_func + pen_func
     
-    # print blocks are sanity checks so i'm not staring at a blank screen
+    # print blocks are sanity checks so i'm not staring at a blank screen, commented out because it's unnecessary'
     #print(L, mdot, dia, p_e, alt[-1])
     #print(obj_func, ' + ', pen_func, ' = ', sum_func)
     
-    allvectors.append(x)
+    allvectors.append(x) # maintains a list of every successive design
     
     return sum_func
 
@@ -148,7 +147,7 @@ def iterate(f, x_0, n):
         #res = minimize(f, x, args=(i+1), method='Powell', options={'disp': True}) # this is a minimizer for brute-force monkeys
         res = minimize(f, x, args=(i+1), method='nelder-mead', options={'disp': True, 'adaptive':True}) # this minimizer uses simplex method
         x = res.x # feed optimal design vec into next iteration
-        cons_mass = trajectory.trajectory(x[0], x[1], x[2], x[3], dt=time_step)[-5][0] #update mass constraint
+        cons_mass = trajectory.trajectory(x[0], x[1], x[2], x[3], dt=time_step)[-5][0] # update mass constraint
         print("Propellant tube length (m): "+str(x[0]))
         print("Mass flow rate (kg/s): "+str(x[1]))
         print("Airframe diameter (in): "+str(x[2]))
@@ -262,6 +261,7 @@ def rocket_plot(t, alt, v, a, F, q, Ma, m):
     ax8.set_ylabel("LOX Tank Axial Load")
     ax8.set_xlabel("t (s)")
     
+    # we save the nice figures we make and then display them
     plt.savefig(openrkt.rkt_prefix +'psas_rocket_'+str(openrkt.get_index()-1)+'_traj.svg')
     plt.show()
 
@@ -289,6 +289,7 @@ def phase_plot(L, mdot, D, p_e):
     ax3.set_xlabel("Mass flow rate (kg/s)")
     ax3.set_ylabel("Length (m)")
     
+    # we display the first diagram of 2d phase portraits
     plt.show()
     
     fig2 = plt.figure()
@@ -299,7 +300,9 @@ def phase_plot(L, mdot, D, p_e):
     ax.set_ylabel("Mass flow rate (kg/s)")
     ax.set_zlabel("Exit pressure (kPa)")
     
+    # we display the interactive 3d phase portrait
     plt.show()
+    # note, we're choosing to not automatically save these, but they can be saved from the interface
     
 
 # Results, this is the big boi function

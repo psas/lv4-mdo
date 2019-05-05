@@ -8,6 +8,7 @@ import numpy as np
 import csv
 
 # A simple forward Euler integration for rocket trajectories
+# could range-kutta or some other integration, but this is sufficient for now
 
 # Subsystem masses, needs sanity check from dirty ME's
 def dry_mass(tankmass):
@@ -26,10 +27,12 @@ def dry_mass(tankmass):
 # Propellant masses
 def propellant_mass(A, L, OF=1.3):
     rho_alc = 852.3             # Density, ethanol fuel [kg/m^3]
+    rho_ipa = 786     # kg/m^3 Density of Isopropyl Alcohol
     rho_lox = 1141.0            # Density, lox          [kg/m^3]
-    L_lox = L/(rho_lox/(rho_alc*OF) + 1)
+    
+    L_lox = L/(rho_lox/(rho_ipa*OF) + 1)
     m_lox = rho_lox*L_lox*A     # Oxidizer mass         [kg]
-    m_alc = rho_alc*(L-L_lox)*A # Fuel mass             [kg]
+    m_alc = rho_ipa*(L-L_lox)*A # Fuel mass             [kg]
     return m_lox, m_alc         # Propellant Mass       [kg]
 
 # all your atmospheric needs are here, probably should sanity check
@@ -152,7 +155,7 @@ def trajectory(L, mdot, dia, p_e, p_ch=350, T_ch=3500, ke=1.3, Re=349, x_init=0,
     # Drag coefficient look up
     C_d_t = []
     Ma_t = []
-    f = open('CD_sustainer_poweron.csv') # Use aerobee 150 drag data, perhaps a pessimistic estimate
+    f = open('CD_sustainer_poweron.csv') # Use aerobee 150 drag data, perhaps a pessimistic estimate, but has the right shape and approximate range
     aerobee_cd_data = csv.reader(f, delimiter=',')
     for row in aerobee_cd_data:
         C_d_t.append(float(row[1]))
@@ -180,7 +183,7 @@ def trajectory(L, mdot, dia, p_e, p_ch=350, T_ch=3500, ke=1.3, Re=349, x_init=0,
         else: # coasting phase
             if (motor_burnout == False) and (m_prop[-2] > 0): # no propellant now, did we have it last moment?
                 motor_burnout = True
-                # here we want to calculate CoM and CoP to get stability
+                # here we want to eventually calculate CoM and CoP to get stability
                 # we will spit stability out of traj func
                 #this is mostly just a hook for later usage
             Ve = thrust(x[-1], p_ch, T_ch, p_e, ke, Re, mdot_old)[3]
@@ -189,6 +192,7 @@ def trajectory(L, mdot, dia, p_e, p_ch=350, T_ch=3500, ke=1.3, Re=349, x_init=0,
             m_prop[-1] = 0
 
         # kind of an simple method but it works
+        # could improve significantly, but not essential
         q.append(drag(x[-1], v[-1], A, Ma[-1], C_d_t, Ma_t)[1])
         D.append(drag(x[-1], v[-1], A, Ma[-1], C_d_t, Ma_t)[0])
         a.append((F[-1] - D[-1])/m[-1] - g_0)

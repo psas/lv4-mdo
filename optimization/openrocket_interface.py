@@ -14,14 +14,21 @@ from sys import platform as _platform
 import xml.etree.ElementTree as ET # xml library
 from zipfile import ZipFile
 
+# Liquid motor variables (Change these!)
+loss_factor = 1    # if < 1, then assume thrust is less than ideal (percentage)
+Tank = CF         # Choose from below table, ignore steel
+factor_of_safety = 2   # factor of safety
+OF = 1.3      # O/F ratio, this is somewhat arbitrary
+
 rkt_prefix = "./rocket_farm/" # this is where rockets live
 
 # Physics
 g_0 = 9.80665  # kg.m/s^2     Standard gravity
 
-# Chemistry
+# Chemistry, note we are using LOX and IPA, not Ethanol
 rho_lox = 1141.0   # kg/m^3  Density of LOX
 rho_eth = 852.3   # kg/m^3  Density of Ethanol (with 70% H2O)
+rho_ipa = 786     # kg/m^3 Density of Isopropyl Alcohol
 
 # Tank Materials
 Al    = { 'rho': 2800.0,   # kg/m^3       Density
@@ -37,12 +44,6 @@ l_engine =      0.300 # m
 m_plumb  =      5.0   # kg
 l_plumb  =      0.350 # m
 gaps     =      0.100 # m
-
-# Liquid motor variables (Change these!)
-loss_factor = 1    # if < 1, then assume thrust is less than ideal
-Tank = CF         # Choose from above table, ignore steel
-factor_of_safety = 2   # factor of saftey
-OF = 1.3      # O/F ratio
 
 # unpack rocket template
 def unzip():
@@ -106,7 +107,7 @@ def split_tanks(prop_mass, total_dia):
     m_o, m_f = split_prop_mass(prop_mass)
     r = tank_r(total_dia)
     l_o = tank_length(m_o, rho_lox, r)
-    l_f = tank_length(m_f, rho_eth, r)
+    l_f = tank_length(m_f, rho_ipa, r)
     l_o += l_o*0.1 # add 10% for ullage
     l_f += l_f*0.1 # add 10% for ullage
     return r, l_o, l_f
@@ -184,7 +185,7 @@ def c_of_m(prop_mass, total_dia, mdot, t):
     m_f = M_f_0 - (mdot_f*t)
     
     lcm_o = l_o - tank_length(m_o, rho_lox, r)/2.0
-    lcm_f = l_o + gaps + l_f - tank_length(m_f, rho_eth, r)/2.0
+    lcm_f = l_o + gaps + l_f - tank_length(m_f, rho_ipa, r)/2.0
     
     cm_prop = ((m_o*lcm_o) + (m_f*lcm_f))/(m_o + m_f+0.000001)
     cm = ((dry_cm*dry_mass) + (cm_prop*(m_f+m_o)))/(dry_mass+m_f+m_o)
