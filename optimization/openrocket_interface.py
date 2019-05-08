@@ -27,7 +27,7 @@ g_0 = 9.80665  # kg.m/s^2     Standard gravity
 # Chemistry, note we are using LOX and IPA, not Ethanol
 rho_lox = 1141.0   # kg/m^3  Density of LOX
 rho_eth = 852.3   # kg/m^3  Density of Ethanol (with 70% H2O)
-rho_ipa = 786     # kg/m^3 Density of Isopropyl Alcohol
+rho_ipa = 849.28   # kg/m^3 Density of 64.8% IPA / 35.2% H20
 
 # Tank Materials
 Al    = { 'rho': 2800.0,   # kg/m^3       Density

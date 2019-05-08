@@ -12,22 +12,23 @@ import csv
 
 # Subsystem masses, needs sanity check from dirty ME's
 def dry_mass(tankmass):
-    m_nosecone = 30 + 0.1                        # nosecone weight    [kg]
-    m_recovery = 4 + 0.1 + 1.2 + 0.1                         # Recovery system mass [kg]
-    m_payload = 0.05 + 0.1                          # Payload mass         [kg]
-    m_avionics = 3 + 0.1                       # Avionics mass        [kg]
+    m_ringsclamps = (.466 + 1) * 7
+    m_nosecone = 22                       # nosecone weight    [kg]
+    m_recovery = 4                         # Recovery system mass [kg]
+    m_payload = 4                           # Payload mass         [kg]
+    m_avionics = 3.3                        # Avionics mass        [kg]
     m_tankage = tankmass # Tank mass Estimation [kg] # avg 30 kg
-    m_engine = 3 + 0.1 + 0.1                         # Engine mass          [kg] #CHECK THIS
-    m_feedsys = 5 + 10                         # Feed system mass     [kg] #CHECK THIS, i'm including plumbing
-    m_airframe  = 4.3 + 0.99 + 0.99 + 0.45 + 0.99 + 3.6 + 2.4 + 1.5                # Airframe mass        [kg]
-    m_fins = 4.2                              # total fin mass [kg] #estimate from openrocket
-    return (m_nosecone + m_recovery + m_payload + m_avionics + m_tankage 
+    m_engine = 3                         # Engine mass          [kg]
+    m_feedsys = 10                         # Feed system mass including plumbing    [kg] 
+    m_airframe  = 4.5 + 1 + 1 + 0.5 + 1 + 3.5 + 2.5 + 1.5                # Airframe mass        [kg]
+    m_fins = 5.5                              # total fin mass [kg] #estimate from openrocket
+    return (m_ringsclamps + m_nosecone + m_recovery + m_payload + m_avionics + m_tankage 
         + m_engine + m_feedsys + m_airframe + m_fins)   # total Dry mass
 
 # Propellant masses
 def propellant_mass(A, L, OF=1.3):
     rho_alc = 852.3             # Density, ethanol fuel [kg/m^3]
-    rho_ipa = 786     # kg/m^3 Density of Isopropyl Alcohol
+    rho_ipa = 849.28  # kg/m^3 Density of 64.8% IPA / 35.2% H20 
     rho_lox = 1141.0            # Density, lox          [kg/m^3]
     
     L_lox = L/(rho_lox/(rho_ipa*OF) + 1)
@@ -94,14 +95,16 @@ def drag(x, v, A, Ma, C_d_t, Ma_t):
 
 # calculates trajectory of a design, this is important to have right
 # at some point, sanity check the constants we're assuming
-# the default values of T_ch, ke, and Re in the function definition are for ethanol, theoretically
+# the default values of T_ch, ke, and Re in the function definition are for ethanol, theoretically, so let's ignore them
 def trajectory(L, mdot, dia, p_e, p_ch=350, T_ch=3500, ke=1.3, Re=349, x_init=0, dt=.1, tankmass=30., propmass=0):
     # Note combustion gas properties ke, Re, T_ch, etc, determined from CEA
     # dt is Time step                  [s]
-    # CEArun with chamber pressure=350 psi, fuel temp=298.15 K, lox temp=90 K, OF=1.3
-    T_ch = 2874.48 # from CEA, K
-    ke = 1.1891 # from CEA for IPA, gammas.
-    Re = 424.381 # from CEA for IPA, R/ molar weight (M)
+    
+    # CEA run with chamber pressure=350 psi, fuel temp=419.15 K, lox temp=90 K, OF=1.3 for fuel = 64.8% IPA / 35.2% H20
+    T_ch = 3153.08 # from CEA, Kelvin
+    ke = 1.1241 # from CEA for IPA, gammas.
+    Re = 361.6088 # from CEA for IPA, gas constant / molar weight
+    
     # Physical constants
     g_0 = 9.80665 # Gravitational acceleration [m/s^2]
     ka = 1.4   # Ratio of specific heats, air  
