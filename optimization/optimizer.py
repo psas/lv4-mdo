@@ -21,6 +21,7 @@ time_step = 0.1 # change time-step for trajectory simulation
 iterations = 3 # number of escalating iterations, degenerate after ~8
 
 ##CHANGE INITIAL DESIGN GUESS HERE
+# these are kinda janky guesses, but they let you see designs get sucked into what seems to be an attractor
 L = 2.5    # Total tank lengths (m)
 mdot = 1.5 # Propellant mass flow rate (kg/s)
 dia = 6.  # Rocket diameter (in)

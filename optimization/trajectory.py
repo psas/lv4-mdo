@@ -94,9 +94,12 @@ def drag(x, v, A, Ma, C_d_t, Ma_t):
 
 # calculates trajectory of a design, this is important to have right
 # at some point, sanity check the constants we're assuming
+# the default values of ke and Re in the function definition are for ethanol, theoretically
 def trajectory(L, mdot, dia, p_e, p_ch=350, T_ch=3500, ke=1.3, Re=349, x_init=0, dt=.1, tankmass=30., propmass=0):
     # Note combustion gas properties ke, Re, T_ch, etc, determined from CEA
     # dt is Time step                  [s]
+    ke = 1.1477 # from CEA for IPA, gammas. OF = 1.3, T = 3500
+    Re = 472.7355 # from CEA for IPA, R/ molar weight (M)
     # Physical constants
     g_0 = 9.80665 # Gravitational acceleration [m/s^2]
     ka = 1.4   # Ratio of specific heats, air  

@@ -16,7 +16,6 @@ from zipfile import ZipFile
 
 # Liquid motor variables (Change these!)
 loss_factor = 1    # if < 1, then assume thrust is less than ideal (percentage)
-Tank = CF         # Choose from below table, ignore steel
 factor_of_safety = 2   # factor of safety
 OF = 1.3      # O/F ratio, this is somewhat arbitrary
 
@@ -39,6 +38,7 @@ CF    = { 'rho': 1550.0,   # kg/m^3       Density
           'Sy':    0.450e9} # Pa          Yield strength
 
 # Engine system dimensions
+Tank = CF         # Choose from above table, ignore steel
 m_engine =      3.0   # kg
 l_engine =      0.300 # m
 m_plumb  =      5.0   # kg
