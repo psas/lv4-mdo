@@ -22,10 +22,10 @@ iterations = 3 # number of escalating iterations, degenerate after ~8
 
 ##CHANGE INITIAL DESIGN GUESS HERE
 # these are kinda janky guesses, but they let you see designs get sucked into what seems to be an attractor
-L = 2.5    # Total tank lengths (m)
-mdot = 1.5 # Propellant mass flow rate (kg/s)
+L = 1    # Total tank lengths (m)
+mdot = 4 # Propellant mass flow rate (kg/s)
 dia = 6.  # Rocket diameter (in)
-p_e = 100.  # Exit Pressure (kPa)
+p_e = 80.  # Exit Pressure (kPa)
 
 #CHANGE CONSTRAINTS HERE
 cons_mass = trajectory.trajectory(L, mdot, dia, p_e, dt=time_step)[-5][0] # GLOW constraint taken from initial design GLOV
