@@ -16,7 +16,7 @@ from zipfile import ZipFile
 
 # Liquid motor variables (Change these!)
 OF = 1.3      # O/F ratio, this is somewhat arbitrary but optimal
-ullage = 0.1 # percentage of length added to a tank to account for not filling
+ullage = 1.1 # percentage of length added to a tank to account for not filling
 loss_factor = 1.    # if < 1, then assume thrust is less than ideal (percentage)
 factor_of_safety = 2   # factor of safety
 mass_realism_coefficient = 2 #fudge factor for design mass, includes contribution of tank structural lugs, feed system, stress concentrations, welds, slosh baffles etc.
@@ -167,27 +167,30 @@ def system_mass(r, l_o, l_f):
 def dry_c_of_m(r, l_o, l_f):
     m_tank_o, m_tank_f = tank_builder(r, l_o, l_f)
     bulkheads = bulkhead(body_r(r))
+    
     # fuel tank cm is in the center of the tank
-    cm_tank_f = l_f / 2.0
+    cm_tank_f  = l_f / 2.0
     # including gaps since they have bulkheads now
-    cm_gap1 = l_f + gaps/2.
+    cm_gap1    = l_f + gaps/2.
     # next tank down (lox) has a gap.
-    cm_tank_o = l_f + gaps + (l_o/2.0)
+    cm_tank_o  = l_f + gaps + (l_o/2.0)
     # next gap
-    cm_gap2 = l_f + gaps + l_o + gaps/2.
+    cm_gap2    = l_f + gaps + l_o + gaps/2.
     # now feedsystem
-    cm_feed = l_f + gaps + l_o + gaps + (l_feed/2.0)
+    cm_feed    = l_f + gaps + l_o + gaps + (l_feed/2.0)
     #next gap
-    cm_gap3 = l_f + gaps + l_o + gaps + l_feed + gaps/2.
+    cm_gap3    = l_f + gaps + l_o + gaps + l_feed + gaps/2.
     #ems
-    cm_ems = l_f + gaps + l_o + gaps + l_feed + gaps + (l_ems/2.)
+    cm_ems     = l_f + gaps + l_o + gaps + l_feed + gaps + (l_ems/2.)
     #last gap
-    cm_gap4 = l_f + gaps + l_o + gaps + l_feed + gaps + l_ems + gaps/2.
+    cm_gap4    = l_f + gaps + l_o + gaps + l_feed + gaps + l_ems + gaps/2.
     # finally the engine
-    cm_engine = l_f + gaps + l_o + gaps + l_feed + gaps + l_ems + gaps + (l_engine/2.0)
+    cm_engine  = l_f + gaps + l_o + gaps + l_feed + gaps + l_ems + gaps + (l_engine/2.0)
+    
     # sum cm
     dry_cm = sum([cm_tank_f*m_tank_f, cm_tank_o*m_tank_o, cm_feed*m_feed, cm_engine*m_engine, \
         cm_gap1*bulkheads, cm_gap2*bulkheads, cm_gap3*bulkheads, cm_gap4*bulkheads])
+    
     dry_cm /= system_mass(r, l_o, l_f)
     return dry_cm
 
@@ -200,6 +203,7 @@ def c_of_m(prop_mass, total_dia, mdot, t):
     M_o_0, M_f_0 = proportion(prop_mass) # initial propellant masses
     mdot_o, mdot_f = proportion(mdot) # mass flow rates
     r, l_o, l_f = split_tanks(prop_mass, total_dia) # geometry
+    
     # dry stuff
     dry_cm = dry_c_of_m(r, l_o, l_f) 
     dry_mass = system_mass(r, l_o, l_f)
@@ -210,7 +214,6 @@ def c_of_m(prop_mass, total_dia, mdot, t):
     #accounts for gravity as propellant is spent correctly
     cm_f_l = l_f - tank_length(m_f, rho_ipa, r)/2.0
     cm_o_l = l_f + gaps + l_o - tank_length(m_o, rho_lox, r)/2.0
-    
     cm_prop = ((m_f*cm_f_l) + (m_o*cm_o_l)) / (m_o + m_f +0.000001) # decimal to avoid divide by 0
     cm = ((dry_cm*dry_mass) + (cm_prop*(m_f + m_o))) / (dry_mass + m_f + m_o)
     return cm

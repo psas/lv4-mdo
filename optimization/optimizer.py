@@ -18,7 +18,7 @@ global allvectors, cons_mass
 
 # SIMULATION AND OPTIMIZATION PARAMETERS
 time_step = 0.1 # change time-step for trajectory simulation
-iterations = 2 # number of escalating iterations, degenerate after ~8
+iterations = 3 # number of escalating iterations, degenerate after ~8
 launch_site_alt = 1401 # m, altitude of launch site above sea level
 
 ##CHANGE INITIAL DESIGN GUESS HERE
@@ -32,13 +32,14 @@ p_e = 45.56  # Exit Pressure (kPa)
 ###CHECK ME
 cons_mass = trajectory.trajectory(L, mdot, dia, p_e, x_init=launch_site_alt, dt=time_step)[-5][0] # GLOW constraint taken from initial design GLOV
 cons_totimp = 400   # total impulse constraint
-cons_ls = 22.       # min launch speed from 60' tower constraint, m/s
+cons_ls = 20.       # min launch speed from 60' tower constraint, m/s
 cons_TWR = 1.1       # TWR constraint
 cons_S_crit = 0.35 # Critical pressure ratio constraint
-cons_accel = 15    # Max acceleration constraint
-cons_LD = 15       # L/D ratio constraint
+cons_accel = 15.    # Max acceleration constraint
+cons_LD = 20.       # L/D ratio constraint
 cons_alt = 100000 + launch_site_alt # Min altitude constraint
-cons_thrust = 6    # max average thrust
+cons_thrust = 6.    # max average thrust
+max_dia = 14.    # maximum diameter
 
 # physical constants
 nose_l = 1.25 # m
@@ -47,7 +48,7 @@ rcs_l = 6 * 0.0254 # m (converted from in)
 av_l = 18 * 0.0254 # m (converted from in)
 n2_l = 18 * 0.0254 # m (converted from in)
 
-shirt_l = sum([nose_l, ers_l, rcs_l, av_l, n2_l, 4*openrkt.gaps]) # m, total of above
+shirt_l = sum([nose_l, ers_l, rcs_l, av_l, n2_l]) # m, total of above. (what about gaps??)
 
 g_0 = openrkt.g_0 # gravity
 
@@ -102,7 +103,7 @@ def pen_func(ls, alt, S_crit, LD, gees, TWR, mu):
 # evaluate a rocket design and trajectory
 # (a/b - 1): a < b
 # (1 - a/b): a > b
-def eval_rkt(ls, thrust, LD, TWR, S_crit, alt, gees, punisher=25):
+def eval_rkt(ls, thrust, LD, TWR, S_crit, alt, gees, dia, punisher=25):
     # multiply all constraint violations, degenerate around 10^9
     combined = punisher*(\
     
@@ -125,7 +126,8 @@ def eval_rkt(ls, thrust, LD, TWR, S_crit, alt, gees, punisher=25):
     1*max(0, 1 - alt/cons_alt)**2 + \
     
     # min top g's
-    1*max(0, gees/cons_accel - 1)**2) 
+    1*max(0, gees/cons_accel - 1)**2 + \
+    1*max(0, dia/max_dia - 1)**2) 
     
     return combined
 
@@ -144,7 +146,7 @@ def f(x, n):
     obj = m[0]/cons_mass # use this line to minimize mass
     
     # or use 3 of the next 4 lines of code to maximize total impulse
-    #fdex = last_moment(F) # index of engine burnout
+    fdex = last_moment(F) # index of engine burnout
     #total_impulse = (fdex * time_step) * (F[fdex - 1] + F[0]) / 2 / 1000 # burn-time times average thrust in kN*s
     
     #obj_func = cons_totimp / total_impulse # this is one way to maximize
@@ -152,7 +154,7 @@ def f(x, n):
     
     # then, calculate penalization from trajectory based on initial thrust
     r, l_o, l_f = openrkt.split_tanks(m[0], dia)
-    pen = eval_rkt(ls, F[0]/1000, ld_ratio(openrkt.system_length(l_o, l_f), dia), TWR, S_crit, alt[-1], max_g_force(a), 50)
+    pen = eval_rkt(ls, F[fdex-1]/1000, ld_ratio(openrkt.system_length(l_o, l_f), dia), TWR, S_crit, alt[-1], max_g_force(a), dia, 10**n)
     
     # add objective and penalty functions
     #sum_func = obj_func + pen_func
@@ -219,7 +221,7 @@ def print_results(res):
     text_base.append('\nSommerfield criterion (c.f. pe/pa >= {})   = {:.1f}'.format(cons_S_crit, S_crit))
     text_base.append("\nMax acceleration (c.f. < {})               = {:.2f} g's".format(cons_accel, max_g_force(a)))
     text_base.append('\nTWR at lift off (c.f. > {})                = {:.2f}'.format(cons_TWR, TWR))
-    text_base.append('\naltitude at apogee (c.f. > {})             = {:.1f} km'.format(cons_alt, alt[-1]/1000))
+    text_base.append('\naltitude at apogee (c.f. > {})             = {:.1f} km'.format(cons_alt/1000, alt[-1]/1000))
     text_base.append('\nspeed when leaving launch rail (c.f. > {}) = {:.1f} km/s'.format(cons_ls, ls))
     text_base.append('\ndesign thrust (vacuum) (c.f. < {})         = {:.1f} kN'.format(cons_thrust, F[fdex - 1]/1000))
 
