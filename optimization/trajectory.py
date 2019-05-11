@@ -6,35 +6,35 @@
 from math import sqrt, pi, exp, log, cos
 import numpy as np
 import csv
+import openrocket_interface as openrkt
 
 # A simple forward Euler integration for rocket trajectories
 # could range-kutta or some other integration, but this is sufficient for now
 
 # Subsystem masses, needs sanity check from dirty ME's
-def dry_mass(tankmass):
+# at some point soon i want this func to be parametrized by rocket dimensions
+def dry_mass(engine_sys_mass):
     m_ringsclamps = (.466 + 1) * 7
     m_nosecone = 22                       # nosecone weight    [kg]
     m_recovery = 4                         # Recovery system mass [kg]
     m_payload = 4                           # Payload mass         [kg]
     m_avionics = 3.3                        # Avionics mass        [kg]
-    m_tankage = tankmass # Tank mass Estimation [kg] # avg 30 kg
-    m_engine = 3                         # Engine mass          [kg]
-    m_feedsys = 10                         # Feed system mass including plumbing    [kg] 
-    m_airframe  = 4.5 + 1 + 1 + 0.5 + 1 + 3.5 + 2.5 + 1.5                # Airframe mass        [kg]
+    m_n2      = 4                           # mass of n2 tank [kg]
+    m_airframe  = 4.5 + 1 + 1 + 0.5 + 1 + 3.5 + 2.5 + 1.5   # Airframe mass        [kg]
     m_fins = 5.5                              # total fin mass [kg] #estimate from openrocket
-    return (m_ringsclamps + m_nosecone + m_recovery + m_payload + m_avionics + m_tankage 
-        + m_engine + m_feedsys + m_airframe + m_fins)   # total Dry mass
+    return (m_ringsclamps + m_nosecone + m_recovery + m_payload + m_avionics + m_n2 \
+        + engine_sys_mass + m_airframe + m_fins)   # total Dry mass
 
 # Propellant masses
 def propellant_mass(A, L, OF=1.3):
-    rho_alc = 852.3             # Density, ethanol fuel [kg/m^3]
-    rho_ipa = 849.28  # kg/m^3 Density of 64.8% IPA / 35.2% H20 
-    rho_lox = 1141.0            # Density, lox          [kg/m^3]
+    rho_eth = openrkt.rho_eth      # Density, ethanol fuel [kg/m^3]
+    rho_ipa = openrkt.rho_ipa      # Density of 64.8% IPA / 35.2% H20 [kg/m^3]
+    rho_lox = openrkt.rho_lox      # Density, lox          [kg/m^3]
     
-    L_lox = L/(rho_lox/(rho_ipa*OF) + 1)
-    m_lox = rho_lox*L_lox*A     # Oxidizer mass         [kg]
-    m_alc = rho_ipa*(L-L_lox)*A # Fuel mass             [kg]
-    return m_lox, m_alc         # Propellant Mass       [kg]
+    L_lox = L / (1 + rho_lox / (rho_ipa*OF))
+    m_lox = rho_lox*L_lox*A       # Oxidizer mass         [kg]
+    m_alc = rho_ipa*(L-L_lox)*A   # Fuel mass             [kg]
+    return m_lox, m_alc           # Propellant Mass       [kg]
 
 # all your atmospheric needs are here, probably should sanity check
 def std_at(h):                  # U.S. 1976 Standard Atmosphere
@@ -56,6 +56,7 @@ def std_at(h):                  # U.S. 1976 Standard Atmosphere
     return p_a, rho, T_a
 
 # calculates engine thrust
+###CHECK ME
 def thrust(x, p_ch, T_ch, p_e, ke, Re, mdot):
     if p_e < 0.0001: #this is a kludge because optimizer divided by 0 once
         p_e = 0.01
@@ -79,6 +80,7 @@ def thrust(x, p_ch, T_ch, p_e, ke, Re, mdot):
     return F, A_t, A_e, Ve
 
 # calculates drag force
+###CHECK ME
 def drag(x, v, A, Ma, C_d_t, Ma_t):
     # Check Knudsen number and switch drag models (e.g. rarified gas dyn vs. quadratic drag)
     # I'm not sure what the above comment means for us, so I ignored it
@@ -94,9 +96,11 @@ def drag(x, v, A, Ma, C_d_t, Ma_t):
     return D, q
 
 # calculates trajectory of a design, this is important to have right
+# RUNGE KUTTA??!? might be better than euler
 # at some point, sanity check the constants we're assuming
+# one day, might be cool to allow for varying OF ratios
 # the default values of T_ch, ke, and Re in the function definition are for ethanol, theoretically, so let's ignore them
-def trajectory(L, mdot, dia, p_e, p_ch=350, T_ch=3500, ke=1.3, Re=349, x_init=0, dt=.1, tankmass=30., propmass=0):
+def trajectory(L, mdot, dia, p_e, p_ch=350, T_ch=3500, ke=1.3, Re=349, x_init=0, dt=.1):
     # Note combustion gas properties ke, Re, T_ch, etc, determined from CEA
     # dt is Time step                  [s]
     
@@ -106,30 +110,26 @@ def trajectory(L, mdot, dia, p_e, p_ch=350, T_ch=3500, ke=1.3, Re=349, x_init=0,
     Re = 361.6088 # from CEA for IPA, gas constant / molar weight
     
     # Physical constants
-    g_0 = 9.80665 # Gravitational acceleration [m/s^2]
+    g_0 = openrkt.g_0 # Gravitational acceleration [m/s^2]
     ka = 1.4   # Ratio of specific heats, air  
     Ra = 287.1 # Avg. specific gas constant (dry air)
     
-    # Design constant
-    p_ch = p_ch*6894.76    # Chamber pressure, convert psi to Pa
-    
     # launch site constants
     off_rail = False
-    rail_height = 60. * 0.3048 # 60 ft, convert to m
+    rail_height = x_init + (60 * 0.3048) # 60 ft, convert to m
     launch_speed = 0. # kludge because optimizer crashed once
     
     # engine cut-off variables
     motor_burnout = False
     
+    # Design constant
+    p_ch = p_ch*6894.76    # Chamber pressure, convert psi to Pa
+    
     # LV4 design variables
-    L = L                  # length of both tanks of propellant, in m
+    L = L                  # ideal length of both tanks of propellant, in m
     mdot = mdot            # Mass flow rate [kg/s]
     dia = dia*0.0254       # Convert in. to m, sorry
     p_e = p_e*1000         # Exit pressure, convert kPa to Pa
-    
-    # relevant measurements
-    A = pi*(dia/2)**2      # Airframe frontal area projected onto a circle of diameter variable dia
-    m_dry = dry_mass(tankmass) # Dry mass, call from function dry_mass()
 
     # Initial conditions
     # rocket
@@ -139,44 +139,50 @@ def trajectory(L, mdot, dia, p_e, p_ch=350, T_ch=3500, ke=1.3, Re=349, x_init=0,
     t = [0.]
     
     # air
-    rho = [std_at(x[-1])[1]]
-    p_a = [std_at(x[-1])[0]]
-    T_a = [std_at(x[-1])[2]]
+    rho = [std_at(x[0])[1]]
+    p_a = [std_at(x[0])[0]]
+    T_a = [std_at(x[0])[2]]
     
-    # propellant mass, else option is to dictate an amount, don't know if that's helpful
-    if propmass==0:
-        m_prop = [sum(propellant_mass(A, L))]
-    else:
-        m_prop = [propmass]
-    m = [m_dry + m_prop[-1]] # GLOW
     
-    (F, A_t, A_e, Ve) = thrust(x[-1], p_ch, T_ch, p_e, ke, Re, mdot)
+    # relevant measurements
+    A = pi * (dia/2)**2      # Airframe frontal area projected onto a circle of diameter variable dia
+    # propellant mass
+    m_prop = [sum(propellant_mass(A, L, openrkt.OF))]
+    r, l_o, l_f = openrkt.split_tanks(m_prop[0], dia/0.0254)
+    m_eng_sys = openrkt.system_mass(r, l_o, l_f) #split_tanks expects in, not m
+    m_dry = dry_mass(m_eng_sys) # Total dry mass
+    
+    m = [m_dry + m_prop[0]] # GLOW
+    
+    (F, A_t, A_e, Ve) = thrust(x[0], p_ch, T_ch, p_e, ke, Re, mdot)
     F = [F]
     D = [0.]
     Ma = [0.]
     q = [0.]
     
-    r = (m_prop[0] + m_dry)/m_dry # Mass ratio
-    dV1 = Ve*log(r)/1000          # Tsiolkovsky's bane (delta-V)
-    mdot_old = mdot
+    r = (m_prop[0] + m_dry) / m_dry # Mass ratio
+    dV1 = Ve * log(r) / 1000          # Tsiolkovsky's bane (delta-V)
+    mdot_old = mdot  # to prevent crashes
     
     # Drag coefficient look up
     C_d_t = []
     Ma_t = []
+    #f = open('lv4.csv') # use estimated drag data from openrocket for one of our lv4 designs
     f = open('CD_sustainer_poweron.csv') # Use aerobee 150 drag data, perhaps a pessimistic estimate, but has the right shape and approximate range
     aerobee_cd_data = csv.reader(f, delimiter=',')
     for row in aerobee_cd_data:
-        C_d_t.append(float(row[1]))
         Ma_t.append(float(row[0]))
+        C_d_t.append(float(row[1]))
+
 
     # now step our rocket through time until apogee
     while True:
-        # air
+        # update air properties
         p_a.append(std_at(x[-1])[0])
         rho.append(std_at(x[-1])[1])
         T_a.append(std_at(x[-1])[2])
         
-        # Check if the propellant tanks are empty
+        # Check if the propellant tanks are non-empty
         if m_prop[-1] > 0: # fuelled phase
             (Fr, A_t, A_e, Ve) = thrust(x[-1], p_ch, T_ch, p_e, ke, Re, mdot)
             F.append(Fr)
@@ -188,10 +194,10 @@ def trajectory(L, mdot, dia, p_e, p_ch=350, T_ch=3500, ke=1.3, Re=349, x_init=0,
                 launch_speed = v[-1]
                 off_rail = True
                 
-        else: # coasting phase
+        elif m_prop[-1] <= 0: # coasting phase
             if (motor_burnout == False) and (m_prop[-2] > 0): # no propellant now, did we have it last moment?
                 motor_burnout = True
-                # here we want to eventually calculate CoM and CoP to get stability
+                # here we may want to eventually calculate CoM and CoP to get stability
                 # we will spit stability out of traj func
                 #this is mostly just a hook for later usage
             Ve = thrust(x[-1], p_ch, T_ch, p_e, ke, Re, mdot_old)[3]
@@ -201,24 +207,30 @@ def trajectory(L, mdot, dia, p_e, p_ch=350, T_ch=3500, ke=1.3, Re=349, x_init=0,
 
         # kind of an simple method but it works
         # could improve significantly, but not essential
-        q.append(drag(x[-1], v[-1], A, Ma[-1], C_d_t, Ma_t)[1])
-        D.append(drag(x[-1], v[-1], A, Ma[-1], C_d_t, Ma_t)[0])
-        a.append((F[-1] - D[-1])/m[-1] - g_0)
+        D_next, q_next = drag(x[-1], v[-1], A, Ma[-1], C_d_t, Ma_t)
+        D.append(D_next)
+        q.append(q_next)
+        
+        t.append(t[-1] + dt)
+        a.append((F[-1] - D[-1]) / m[-1] - g_0)
         v.append(a[-1]*dt + v[-1])
         x.append(v[-1]*dt + x[-1]) 
-        Ma.append(v[-1]/sqrt(ka*Ra*T_a[-1]))
-        t.append(t[-1] + dt)
+        
         m.append(m_dry + m_prop[-1])
-        TWR = a[1]/g_0      # Thrust-to-weight ratio constraint
-        ex = A_e/A_t
-        S_crit = p_e/p_a[0] # Sommerfield criterion constraint
+        Ma.append(v[-1] / sqrt(ka * Ra * T_a[-1]))
+
         
         # check to see if we reached apogee
         if v[-1] <= 0:
+            TWR = a[1]/g_0      # Thrust-to-weight ratio constraint
+            ex = A_e/A_t
+            S_crit = p_e/p_a[0] # Sommerfield criterion constraint
+            
             x = np.array(x)
             a = np.array(a)
             F = np.array(F)
             D = np.array(D)
             q = np.array(q)
+            
             # ends our suffering and returns all the stats of the launch
             return x, v, a, t, F, D, Ma, rho, p_a, T_a, TWR, ex, Ve, A_t, dV1, m, S_crit, q, m_prop, launch_speed

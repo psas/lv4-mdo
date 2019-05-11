@@ -18,42 +18,47 @@ global allvectors, cons_mass
 
 # SIMULATION AND OPTIMIZATION PARAMETERS
 time_step = 0.1 # change time-step for trajectory simulation
-iterations = 3 # number of escalating iterations, degenerate after ~8
+iterations = 2 # number of escalating iterations, degenerate after ~8
+launch_site_alt = 1401 # m, altitude of launch site above sea level
 
 ##CHANGE INITIAL DESIGN GUESS HERE
 # these are kinda janky guesses, but they let you see designs get sucked into what seems to be an attractor
-L = 1    # Total tank lengths (m)
-mdot = 4 # Propellant mass flow rate (kg/s)
-dia = 6.  # Rocket diameter (in)
-p_e = 80.  # Exit Pressure (kPa)
+L = 1.7    # Total tank lengths (m)
+mdot = 2.37 # Propellant mass flow rate (kg/s)
+dia = 12.32  # Rocket diameter (in)
+p_e = 45.56  # Exit Pressure (kPa)
 
 #CHANGE CONSTRAINTS HERE
-cons_mass = trajectory.trajectory(L, mdot, dia, p_e, dt=time_step)[-5][0] # GLOW constraint taken from initial design GLOV
+###CHECK ME
+cons_mass = trajectory.trajectory(L, mdot, dia, p_e, x_init=launch_site_alt, dt=time_step)[-5][0] # GLOW constraint taken from initial design GLOV
 cons_totimp = 400   # total impulse constraint
-
-cons_ls = 24.       # min launch speed from 60' tower constraint, m/s
-
-cons_TWR = 2       # TWR constraint
+cons_ls = 22.       # min launch speed from 60' tower constraint, m/s
+cons_TWR = 1.1       # TWR constraint
 cons_S_crit = 0.35 # Critical pressure ratio constraint
 cons_accel = 15    # Max acceleration constraint
 cons_LD = 15       # L/D ratio constraint
-cons_alt = 100000  # Min altitude constraint
-cons_thrust = 4    # max average thrust
+cons_alt = 100000 + launch_site_alt # Min altitude constraint
+cons_thrust = 6    # max average thrust
 
 # physical constants
 nose_l = 1.25 # m
-subsys_l = 2.3 # m
-g_0 = 9.80665 # gravity
+ers_l = 6 * 0.0254 # m (converted from in)
+rcs_l = 6 * 0.0254 # m (converted from in)
+av_l = 18 * 0.0254 # m (converted from in)
+n2_l = 18 * 0.0254 # m (converted from in)
+
+shirt_l = sum([nose_l, ers_l, rcs_l, av_l, n2_l, 4*openrkt.gaps]) # m, total of above
+
+g_0 = openrkt.g_0 # gravity
 
 X0 = np.array([L, mdot, dia, p_e]) #numpy arrays are nicer
 allvectors = [] # array for all design vecs
 
 # calculates length-diameter ratio
-def ld_ratio(L, dia):
-    L = L + nose_l + subsys_l # adds tank, nose, and subsystem lengths to get total rocket length
+def ld_ratio(pants_l, dia):
+    total_l = shirt_l + pants_l # adds shirt and pants lengths to get total rocket length
     D = dia * 0.0254 # converts in to m for total airframe diameter
-    LD = L/D # gets ratio
-    return LD
+    return total_l / D # gets ratio
     
 # calculates top g-force
 def max_g_force(a):
@@ -71,6 +76,27 @@ def last_moment(F):
             break
         j += 1
     return fdex
+
+def at_most(var, cons):
+    return (var - cons)
+    #return max(0, var/cons - 1)**2
+    
+def at_least(var, cons):
+    return -(at_most(var, cons))
+    #return max(0, 1 - var/cons)**2
+    
+def obj_func(glow):
+    return glow/cons_mass
+    
+def merit_func(thrust, rho):
+    return (rho/2) * (thrust - cons_thrust)**2
+
+def pen_func(ls, alt, S_crit, LD, gees, TWR, mu):
+    print(LD)
+    print(cons_LD)
+    return mu * sum([log(-at_least(ls, cons_ls)), log(-at_least(alt, cons_alt)), \
+        log(-at_least(S_crit, cons_S_crit)), max(0, LD/cons_LD - 1)**2, \
+        log(-at_most(gees, cons_accel)), log(-at_least(TWR, cons_TWR))])
 
 # basic exterior penalty function
 # evaluate a rocket design and trajectory
@@ -113,9 +139,9 @@ def f(x, n):
     p_e = x[3]  # Pressure (kPa)
     
     # get trajectory data from x
-    (alt, v, a, t, F, D, Ma, rho, p_a, T_a, TWR, ex, Ve, A_t, dV1, m, S_crit, q, m_prop, ls) = trajectory.trajectory(L, mdot, dia, p_e, dt=time_step)
+    (alt, v, a, t, F, D, Ma, rho, p_a, T_a, TWR, ex, Ve, A_t, dV1, m, S_crit, q, m_prop, ls) = trajectory.trajectory(L, mdot, dia, p_e, x_init=launch_site_alt, dt=time_step)
     
-    obj_func = m[0]/cons_mass # use this line to minimize mass
+    obj = m[0]/cons_mass # use this line to minimize mass
     
     # or use 3 of the next 4 lines of code to maximize total impulse
     #fdex = last_moment(F) # index of engine burnout
@@ -125,14 +151,18 @@ def f(x, n):
     #obj_func = -total_impulse / cons_totimp # this is another way to maximize
     
     # then, calculate penalization from trajectory based on initial thrust
-    pen_func = eval_rkt(ls, F[0]/1000, ld_ratio(L, dia), TWR, S_crit, alt[-1], max_g_force(a), 10^n)
+    r, l_o, l_f = openrkt.split_tanks(m[0], dia)
+    pen = eval_rkt(ls, F[0]/1000, ld_ratio(openrkt.system_length(l_o, l_f), dia), TWR, S_crit, alt[-1], max_g_force(a), 50)
     
     # add objective and penalty functions
-    sum_func = obj_func + pen_func
+    #sum_func = obj_func + pen_func
+    #obj = obj_func(m[0]) + merit_func(max(F)/1000, 10)
+    #pen = pen_func(ls, alt[-1], S_crit, ld_ratio(L, dia), max_g_force(a), TWR, 10)
+    sum_func = obj + pen
     
     # print blocks are sanity checks so i'm not staring at a blank screen, commented out because it's unnecessary'
     #print(L, mdot, dia, p_e, alt[-1])
-    #print(obj_func, ' + ', pen_func, ' = ', sum_func)
+    print(obj, ' + ', pen, ' = ', sum_func)
     
     allvectors.append(x) # maintains a list of every successive design
     
@@ -148,7 +178,7 @@ def iterate(f, x_0, n):
         #res = minimize(f, x, args=(i+1), method='Powell', options={'disp': True}) # this is a minimizer for brute-force monkeys
         res = minimize(f, x, args=(i+1), method='nelder-mead', options={'disp': True, 'adaptive':True}) # this minimizer uses simplex method
         x = res.x # feed optimal design vec into next iteration
-        cons_mass = trajectory.trajectory(x[0], x[1], x[2], x[3], dt=time_step)[-5][0] # update mass constraint
+        #cons_mass = trajectory.trajectory(x[0], x[1], x[2], x[3], x_init=launch_site_alt, dt=time_step)[-5][0] # update mass constraint
         print("Propellant tube length (m): "+str(x[0]))
         print("Mass flow rate (kg/s): "+str(x[1]))
         print("Airframe diameter (in): "+str(x[2]))
@@ -165,7 +195,7 @@ def print_results(res):
     dia = res[2]
     p_e = res[3]
     
-    (alt, v, a, t, F, D, Ma, rho, p_a, T_a, TWR, ex, Ve, A_t, dV1, m, S_crit, q, m_prop, ls) = trajectory.trajectory(L, mdot, dia, p_e, dt=time_step) 
+    (alt, v, a, t, F, D, Ma, rho, p_a, T_a, TWR, ex, Ve, A_t, dV1, m, S_crit, q, m_prop, ls) = trajectory.trajectory(L, mdot, dia, p_e, x_init=launch_site_alt, dt=time_step) 
     fdex = last_moment(F) # index of engine burnout
     
     np.set_printoptions(precision=3) # this line may be deprecated, i copy-pasted most of this section
@@ -174,7 +204,7 @@ def print_results(res):
     text_base.append('\n-----------------------------')
     text_base.append('\nx_initial_guess                            = ' + ', '.join([str(X0[0]), str(X0[1]), str(X0[2]), str(X0[3])])) # kind of a kludge
     text_base.append('\ninitial guess GLOW                                    = {:.1f} kg'.format( \
-          trajectory.trajectory(X0[0], X0[1], X0[2], X0[3], dt=time_step)[-5][0]))
+          trajectory.trajectory(X0[0], X0[1], X0[2], X0[3], x_init=launch_site_alt, dt=time_step)[-5][0]))
     text_base.append('\nx_optimized                                = ' + ', '.join([str(L), str(mdot), str(dia), str(p_e)])) # kind of a kludge
     text_base.append('\ndesign GLOW                                = {:.1f} kg'.format(m[0]))
     text_base.append('\ndesign tankage length                      = {:.2f} m'.format(L))
@@ -196,9 +226,10 @@ def print_results(res):
     text_base.append('\n')
     text_base.append('\nADDITIONAL INFORMATION')
     text_base.append('\n-----------------------------')
+    text_base.append('\naltitude at engine ignition                = {:.1f} m'.format(launch_site_alt))
     text_base.append('\nmission time at apogee                     = {:.1f} s'.format(t[-1]))
     text_base.append('\ndesign total propellant mass               = {:.3f} kg'.format(m_prop[0]))
-    text_base.append('\ndesign thrust (sea level)                  = {:.1f} kN'.format(F[0]/1000))
+    text_base.append('\ndesign thrust (ground level)                  = {:.1f} kN'.format(F[0]/1000))
     text_base.append('\ndesign burn time                           = {} s'.format(fdex*time_step))
     text_base.append('\ndesign expansion ratio                     = {:.1f}'.format(ex))
     text_base.append('\ndesign throat area                         = {:.1f} in.^2'.format(A_t/0.0254**2))
@@ -319,7 +350,7 @@ if __name__ == '__main__': # Testing
     p_e = res[3]
     
     # get trajectory info from optimal design
-    (alt, v, a, t, F, D, Ma, rho, p_a, T_a, TWR, ex, Ve, A_t, dV1, m, S_crit, q, m_prop, ls) = trajectory.trajectory(L, mdot, dia, p_e, dt=time_step)  
+    (alt, v, a, t, F, D, Ma, rho, p_a, T_a, TWR, ex, Ve, A_t, dV1, m, S_crit, q, m_prop, ls) = trajectory.trajectory(L, mdot, dia, p_e, x_init=launch_site_alt, dt=time_step)  
     
     fdex = last_moment(F) # index of engine burnout
 
@@ -330,8 +361,9 @@ if __name__ == '__main__': # Testing
  
     print('\nMaking an OpenRocket rocket and corresponding engine!')
     # create an openrocket file with matching engine for our design (and print/save trajectory data)
-    openrkt.make_engine(mdot, m_prop[0], dia, F[0], fdex*time_step, Ve/g_0, res_text)
-    rocket_plot(t, alt, v, a, F, q, Ma, m)
+    openrkt.make_engine(mdot, m_prop[0], dia, F[0:fdex], fdex*time_step, Ve/g_0, res_text)
+    
+    rocket_plot(t, alt, v, a, F, q, Ma, m) # draw pretty pictures
     
     # the ugly code below is to get us some nice plots of the phase space of design vectors
     y0, y1, y2, y3 = [], [], [], []
