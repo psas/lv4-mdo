@@ -23,10 +23,10 @@ launch_site_alt = 1401 # m, altitude of launch site above sea level
 
 ##CHANGE INITIAL DESIGN GUESS HERE
 # these are kinda janky guesses, but they let you see designs get sucked into what seems to be an attractor
-L = 1.7    # Total tank lengths (m)
+L = 2.    # Total tank lengths (m)
 mdot = 2.37 # Propellant mass flow rate (kg/s)
-dia = 12.32  # Rocket diameter (in)
-p_e = 45.56  # Exit Pressure (kPa)
+dia = 12.  # Rocket diameter (in)
+p_e = 35.56  # Exit Pressure (kPa)
 
 #CHANGE CONSTRAINTS HERE
 ###CHECK ME
@@ -36,10 +36,10 @@ cons_ls = 20.       # min launch speed from 60' tower constraint, m/s
 cons_TWR = 1.1       # TWR constraint
 cons_S_crit = 0.35 # Critical pressure ratio constraint
 cons_accel = 15.    # Max acceleration constraint
-cons_LD = 20.       # L/D ratio constraint
+cons_LD = 15.       # L/D ratio constraint
 cons_alt = 100000 + launch_site_alt # Min altitude constraint
-cons_thrust = 6.    # max average thrust
-max_dia = 14.    # maximum diameter
+cons_thrust = 6.    # max top thrust
+max_dia = 12.5    # maximum diameter
 
 # physical constants
 nose_l = 1.25 # m
@@ -153,7 +153,7 @@ def f(x, n):
     #obj_func = -total_impulse / cons_totimp # this is another way to maximize
     
     # then, calculate penalization from trajectory based on initial thrust
-    r, l_o, l_f = openrkt.split_tanks(m[0], dia)
+    r, l_o, l_f = openrkt.split_tanks(m_prop[0], dia)
     pen = eval_rkt(ls, F[fdex-1]/1000, ld_ratio(openrkt.system_length(l_o, l_f), dia), TWR, S_crit, alt[-1], max_g_force(a), dia, 10**n)
     
     # add objective and penalty functions
@@ -240,11 +240,10 @@ def print_results(res):
     text_base.append('\ndesign total impulse                       = {:.1f} kN*s'.format(fdex*time_step*(F[fdex - 1]/1000 + F[0]/1000)/2))
     text_base.append('\ndesign dV                                  = {:.1f} km/s'.format(dV1))
     text_base.append('\nestimated minimum required dV              = {:.1f} km/s'.format(sqrt(2*g_0*alt[-1])/1000))
-    
     return text_base
 
 # this creates a nice set of plots of our trajectory data and saves it to rocket_farm
-def rocket_plot(t, alt, v, a, F, q, Ma, m):
+def rocket_plot(t, alt, v, a, F, q, Ma, m, p_a, D):
     import matplotlib
     import matplotlib.pyplot as plt
     from matplotlib import rc
@@ -255,9 +254,9 @@ def rocket_plot(t, alt, v, a, F, q, Ma, m):
     #rc('text', usetex=True)
     
     pylab.rcParams['figure.figsize'] = (10.0, 10.0)
-    fig, (ax1, ax2, ax3, ax4, ax6, ax7, ax8) = plt.subplots(7, sharex=True)
+    fig, (ax1, ax2, ax3, ax4, ax6, ax7, ax8, ax9) = plt.subplots(8, sharex=True)
     
-    for n in (ax1, ax2, ax3, ax4, ax6, ax7, ax8):
+    for n in (ax1, ax2, ax3, ax4, ax6, ax7, ax8, ax9):
         n.spines['top'].set_visible(False)
         n.spines['right'].set_visible(False)
         n.yaxis.set_ticks_position('left')
@@ -290,10 +289,18 @@ def rocket_plot(t, alt, v, a, F, q, Ma, m):
     ax7.set_ylabel("Mach number")
     ax7.set_xlabel("t (s)")
     
-    ax8.plot(t, np.array(m)*0.666*np.array(a), 'k')
-    ax8.yaxis.major.locator.set_params(nbins=6) 
-    ax8.set_ylabel("LOX Tank Axial Load")
-    ax8.set_xlabel("t (s)")
+    #ax8.plot(t, np.array(m)*0.666*np.array(a), 'k')
+    #ax8.yaxis.major.locator.set_params(nbins=6) 
+    #ax8.set_ylabel("LOX Tank Axial Load")
+    #ax8.set_xlabel("t (s)")
+    
+    ax8.plot(t, D, 'k')
+    ax8.yaxis.major.locator.set_params(nbins=6)
+    ax8.set_ylabel("Drag (N)")
+    
+    ax9.plot(t, p_a/1000, 'k')
+    ax9.yaxis.major.locator.set_params(nbins=6)
+    ax9.set_ylabel("Air Pressure (Pa)")
     
     # we save the nice figures we make and then display them
     plt.savefig(openrkt.rkt_prefix +'psas_rocket_'+str(openrkt.get_index()-1)+'_traj.svg')
@@ -318,10 +325,10 @@ def phase_plot(L, mdot, D, p_e):
     ax2.set_xlabel("Mass flow rate (kg/s)")
     ax2.set_ylabel("Exit pressure (kPa)")
     
-    ax3.plot(mdot, L)
+    ax3.plot(mdot, D)
     ax3.yaxis.major.locator.set_params(nbins=6)
     ax3.set_xlabel("Mass flow rate (kg/s)")
-    ax3.set_ylabel("Length (m)")
+    ax3.set_ylabel("Diameter (in)")
     
     # we display the first diagram of 2d phase portraits
     plt.show()
@@ -365,7 +372,7 @@ if __name__ == '__main__': # Testing
     # create an openrocket file with matching engine for our design (and print/save trajectory data)
     openrkt.make_engine(mdot, m_prop[0], dia, F[0:fdex], fdex*time_step, Ve/g_0, res_text)
     
-    rocket_plot(t, alt, v, a, F, q, Ma, m) # draw pretty pictures
+    rocket_plot(t, alt, v, a, F, q, Ma, m, p_a, D) # draw pretty pictures
     
     # the ugly code below is to get us some nice plots of the phase space of design vectors
     y0, y1, y2, y3 = [], [], [], []
