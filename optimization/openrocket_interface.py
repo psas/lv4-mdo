@@ -50,6 +50,8 @@ l_ems    =  0.1016 # m, this is 4"
 m_engine =  3.0    # kg
 l_engine =  0.300  # m ###CHECK ME
 airframe_offset = 0.007 # m, empirical from lv3
+dist_after_f = 36 * 0.0254 # m (converted from in), places fuel tank before avionics and N2
+dist_after_o = 0.0 # m, oxygen tank still in front of feedsys, ems, engine (duh)
 
 
 ## Utility Functions
@@ -173,19 +175,19 @@ def dry_c_of_m(r, l_o, l_f):
     # including gaps since they have bulkheads now
     cm_gap1    = l_f + gaps/2.
     # next tank down (lox) has a gap.
-    cm_tank_o  = l_f + gaps + (l_o/2.0)
+    cm_tank_o  = l_f + gaps + dist_after_f + (l_o/2.0)
     # next gap
-    cm_gap2    = l_f + gaps + l_o + gaps/2.
+    cm_gap2    = l_f + gaps + dist_after_f + l_o + gaps/2.
     # now feedsystem
-    cm_feed    = l_f + gaps + l_o + gaps + (l_feed/2.0)
+    cm_feed    = l_f + gaps + dist_after_f + l_o + gaps + dist_after_o + (l_feed/2.0)
     #next gap
-    cm_gap3    = l_f + gaps + l_o + gaps + l_feed + gaps/2.
+    cm_gap3    = l_f + gaps + dist_after_f + l_o + gaps + dist_after_o + l_feed + gaps/2.
     #ems
-    cm_ems     = l_f + gaps + l_o + gaps + l_feed + gaps + (l_ems/2.)
+    cm_ems     = l_f + gaps + dist_after_f + l_o + gaps + dist_after_o + l_feed + gaps + (l_ems/2.)
     #last gap
-    cm_gap4    = l_f + gaps + l_o + gaps + l_feed + gaps + l_ems + gaps/2.
+    cm_gap4    = l_f + gaps + dist_after_f + l_o + gaps + dist_after_o + l_feed + gaps + l_ems + gaps/2.
     # finally the engine
-    cm_engine  = l_f + gaps + l_o + gaps + l_feed + gaps + l_ems + gaps + (l_engine/2.0)
+    cm_engine  = l_f + gaps + dist_after_f + l_o + gaps + dist_after_o + l_feed + gaps + l_ems + gaps + (l_engine/2.0)
     
     # sum cm
     dry_cm = sum([cm_tank_f*m_tank_f, cm_tank_o*m_tank_o, cm_feed*m_feed, cm_engine*m_engine, \
@@ -213,7 +215,7 @@ def c_of_m(prop_mass, total_dia, mdot, t):
     m_f = dprop_mass(M_f_0, mdot_f, t)
     #accounts for gravity as propellant is spent correctly
     cm_f_l = l_f - tank_length(m_f, rho_ipa, r)/2.0
-    cm_o_l = l_f + gaps + l_o - tank_length(m_o, rho_lox, r)/2.0
+    cm_o_l = l_f + gaps + dist_after_f + l_o - tank_length(m_o, rho_lox, r)/2.0
     cm_prop = ((m_f*cm_f_l) + (m_o*cm_o_l)) / (m_o + m_f +0.000001) # decimal to avoid divide by 0
     cm = ((dry_cm*dry_mass) + (cm_prop*(m_f + m_o))) / (dry_mass + m_f + m_o)
     return cm
@@ -279,8 +281,7 @@ def make_engine(mdot, prop_mass, total_dia, Thrust, Burn_time, Isp, res_text):
     for F in Thrust:
         F *= loss_factor # allows us to introduce inefficiency later if we want
         
-    length = system_length(l_o, l_f)
-    M_prop = prop_mass
+    length = system_length(l_o, l_f) + dist_after_f + dist_after_o
     dry_mass = system_mass(r, l_o, l_f)
     
     n = len(Thrust)
