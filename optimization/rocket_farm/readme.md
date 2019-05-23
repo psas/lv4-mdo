@@ -9,9 +9,11 @@ Just select the corresponding engine when loading rocket in openrocket, and rest
 
 Openrocket simulation settings to emulate actual launch site:
 
-Lat 32 N
+Expect Wind Speeds around 2.5-3.5 m/s
 
-Long -106 E
+Lat 32.990 N
+
+Long -106.969 E
 
 Alt 1401 m
 

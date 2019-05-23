@@ -1,13 +1,10 @@
 #!/usr/bin/env python
 # could improve:
-# subsystem estimates
 # fudge factors
-# thrust estimates and curve
 # idiot-proofing
 # extendable file io
 # make engine file with an xml library
 
-from __future__ import print_function #not sure if i even need this, for python2 to use python3 style printing
 from math import pi, log, sqrt
 import os
 from sys import platform as _platform
@@ -15,47 +12,47 @@ import xml.etree.ElementTree as ET # xml library
 from zipfile import ZipFile
 
 # Liquid motor variables (Change these!)
-OF = 1.3      # O/F ratio, this is somewhat arbitrary but optimal
-ullage = 1.1 # percentage of length added to a tank to account for not filling
-loss_factor = 1.    # if < 1, then assume thrust is less than ideal (percentage)
-factor_of_safety = 2   # factor of safety
-mass_realism_coefficient = 2 #fudge factor for design mass, includes contribution of tank structural lugs, feed system, stress concentrations, welds, slosh baffles etc.
+OF = 1.3             # O/F ratio, this is somewhat arbitrary but CEA says its good
+ullage = 1.1         # percentage of length added to a tank to account for not filling
+loss_factor = 1.     # if < 1, then assume thrust is less than ideal (percentage)
+factor_of_safety = 2 # factor of safety
+mass_fudger = 2      # fudge factor for design mass, includes contribution of tank structural lugs, feed system, stress concentrations, welds, slosh baffles etc.
 
 rkt_prefix = "./rocket_farm/" # this is where rockets live
 
 # Physics
-g_0 = 9.80665  # kg.m/s^2     Standard gravity
+g_n = 9.80665  # kg.m/s^2     Standard gravity
 
 # Chemistry, note we are using LOX and IPA, not Ethanol
 rho_lox = 1141.0   # kg/m^3  Density of LOX
-rho_eth = 852.3   # kg/m^3  Density of Ethanol (with 70% H2O)
-rho_ipa = 849.28   # kg/m^3 Density of 64.8% IPA / 35.2% H20
+rho_ipa = 849.28   # kg/m^3  Density of 64.8% IPA / 35.2% H20
+rho_eth = 852.3    # kg/m^3  Density of Ethanol (with 30% H2O)
 
 # Tank Materials
-Al    = { 'rho': 2800.0,   # kg/m^3       Density
-          'Sy':    0.270e9} # Pa          Yield strength
-Steel = { 'rho': 7830.0,   # kg/m^3       Density
-          'Sy':    0.250e9} # Pa          Yield strength
-CF    = { 'rho': 1550.0,   # kg/m^3       Density
-          'Sy':    0.450e9} # Pa          Yield strength
+Al    = { 'rho': 2800.0,    # kg/m^3       Density
+          'Sy':    0.270e9} # Pa           Yield strength
+Steel = { 'rho': 7830.0,    # kg/m^3       Density
+          'Sy':    0.250e9} # Pa           Yield strength
+CF    = { 'rho': 1550.0,    # kg/m^3       Density
+          'Sy':    0.450e9} # Pa           Yield strength
 
 # Engine system dimensions
-Tank     =  CF     # Choose from above table, ignore steel
-gaps     =  0.050  # m ###CHECK ME
-m_plumb  =  5.0    # kg
-m_feed   =  10.0   # kg
-l_feed   =  0.4572 # m, this is 18"
-m_ems    =  1      # kg
-l_ems    =  0.1016 # m, this is 4" 
-m_engine =  3.0    # kg
-l_engine =  0.300  # m ###CHECK ME
-airframe_offset = 0.007 # m, empirical from lv3
-dist_after_f = 36 * 0.0254 # m (converted from in), places fuel tank before avionics and N2
-dist_after_o = 0.0 # m, oxygen tank still in front of feedsys, ems, engine (duh)
+Tank     =  CF             # Choose from above table, ignore steel
+gaps     =  0.050          # m ###CHECK ME
+m_plumb  =  5.0            # kg
+m_feed   =  10.0           # kg
+l_feed   =  0.4572         # m, this is 18"
+m_ems    =  1              # kg
+l_ems    =  0.1016         # m, this is 4" 
+m_engine =  3.0            # kg
+l_engine =  0.300          # m ###CHECK ME
+airframe_offset = 0.007    # m, empirical from lv3
+dist_after_f = 36 * 0.0254 # m (from in), places fuel tank before avionics and N2
+dist_after_o = 0.0         # m, oxygen tank still in front of feedsys, ems, engine (duh)
 
 
 ## Utility Functions
-# NAR letter code
+# NAR letter code, don't really use this anymore, should I?
 def nar_code(thrust, burn_time):
     impulse = thrust*burn_time
     print("")
@@ -66,12 +63,12 @@ def nar_code(thrust, burn_time):
     print('NAR:              "%s" (%0.0f%%)' % (chr(66+nar_i), nar_percent*100))
     return chr(66+nar_i), nar_percent*100
 
-# unpack rocket template
+# unpack rocket template temporally
 def unzip():
     with ZipFile('psas_rocket.ork') as myzip:
         myzip.extract('rocket.ork')
 
-# package our new rocket
+# package our new rocket and remove traces
 def zipit(index):
     with ZipFile(rkt_prefix+'psas_rocket_'+index+'.ork', 'w') as myzip:
         myzip.write('rocket.ork')
@@ -82,18 +79,17 @@ def zipit(index):
     elif "win" in _platform:
         os.system('del rocket.ork')
 
-# pulls all file references from given directory
+# pulls ALL file references from given directory
 def all_files(directory):
     for path, dirs, files in os.walk(directory):
         for f in sorted(files):
             yield os.path.join(path, f)
 
-# counts how many rockets are in directory and then increments by 1
+# counts how many rockets are in our directory and then increments by 1
 def get_index():
     ork_files = [f for f in all_files(rkt_prefix)
-               if f.endswith('.ork')]
-    previous_iteration_index = len(ork_files)
-    return previous_iteration_index + 1
+                   if f.endswith('.ork')]
+    return len(ork_files) + 1
 
 # Consider that there are two tanks, and we will want to divide total mass flow rate and propellant mass
 # generic division, oxygen first, fuel second
@@ -128,19 +124,17 @@ def split_tanks(prop_mass, total_dia):
 
 # tank thickness ###CHECK ME
 def tank_thickness(tank, r):
-    #P_i = 3.042e6  # Tank pressure in Pa, assuming pressure fed with regulator (roughly 441 psig) ###OLD ASSUMPTION
+    #P_i = 3.042e6  # OLD ASSUMPTION!! Tank pressure in Pa, assuming pressure fed with regulator (roughly 441 psig)
+    
     P_i = 689475.7 # Tank pressure in Pa (~100 PSI), assuming pressurized by N2 and ramped up later by EFS
-    radius_o = r   # outer radius, meters
     design_stress = tank['Sy']/factor_of_safety
-    radius_i = sqrt(design_stress * (radius_o**2) / ((2*P_i) + design_stress)) # inner radius
-    thickness = radius_o - radius_i
-    return thickness
+    radius_i = sqrt(design_stress * (r**2) / ((2*P_i) + design_stress)) # inner radius
+    return r - radius_i
 
 # Tank Mass
 def tank_mass(l, tank, r):
     s_area = 2*pi*r*(l + r) #surface area of tank
-    mass = s_area * tank_thickness(tank, r) * tank['rho'] * mass_realism_coefficient
-    return mass
+    return s_area * tank_thickness(tank, r) * tank['rho'] * mass_fudger
 
 # bulkhead mass
 def bulkhead(r):
@@ -202,8 +196,8 @@ def dprop_mass(total_propellant, mdot, t):
 
 # Total center of mass (including propellants) at a time
 def c_of_m(prop_mass, total_dia, mdot, t):
-    M_o_0, M_f_0 = proportion(prop_mass) # initial propellant masses
-    mdot_o, mdot_f = proportion(mdot) # mass flow rates
+    M_o_0, M_f_0 = proportion(prop_mass)            # initial propellant masses
+    mdot_o, mdot_f = proportion(mdot)               # mass flow rates
     r, l_o, l_f = split_tanks(prop_mass, total_dia) # geometry
     
     # dry stuff
@@ -213,12 +207,12 @@ def c_of_m(prop_mass, total_dia, mdot, t):
     # wet stuff
     m_o = dprop_mass(M_o_0, mdot_o, t)
     m_f = dprop_mass(M_f_0, mdot_f, t)
+    
     #accounts for gravity as propellant is spent correctly
     cm_f_l = l_f - tank_length(m_f, rho_ipa, r)/2.0
     cm_o_l = l_f + gaps + dist_after_f + l_o - tank_length(m_o, rho_lox, r)/2.0
     cm_prop = ((m_f*cm_f_l) + (m_o*cm_o_l)) / (m_o + m_f +0.000001) # decimal to avoid divide by 0
-    cm = ((dry_cm*dry_mass) + (cm_prop*(m_f + m_o))) / (dry_mass + m_f + m_o)
-    return cm
+    return ((dry_cm*dry_mass) + (cm_prop*(m_f + m_o))) / (dry_mass + m_f + m_o)
 
 
 ### File IO functions
@@ -228,19 +222,23 @@ def print_characteristics(mdot, prop_mass, r, l_o, l_f, index, res_text):
     mdot_o, mdot_f = proportion(mdot)
     res_text.append("\nOx flow: . . . . . . . %7.3f kg/s" % mdot_o)
     res_text.append("\nFuel flow:             %7.3f kg/s" % mdot_f)
+    
     # Propellent Mass for each propllent
     mprop_o, mprop_f = proportion(prop_mass)
     res_text.append("\nOx mass:               %5.1f kg" % mprop_o)
     res_text.append("\nFuel mass: . . . . . . %5.1f kg" % mprop_f)
+    
     # dimensions of each tank
     res_text.append("\nTank diameters:        %7.3f m" % (r*2))
     res_text.append("\nOx tank length + ullage: . . . .%7.3f m" % l_o)
     res_text.append("\nFuel tank length + ullage:      %7.3f m" % l_f)
+    
     # Tank thickness for each tank (mm)
     thickness_o = tank_thickness(Al, r)
     thickness_f = tank_thickness(Tank, r)
     res_text.append("\nOx tank thickness:        %5.1f mm" % (thickness_o*1000))
     res_text.append("\nFuel tank thickness:        %5.1f mm" % (thickness_f*1000))
+    
     # Mass of each tank
     m_tank_o = tank_mass(l_o, Al, r)
     m_tank_f = tank_mass(l_f, Tank, r)
@@ -251,11 +249,11 @@ def print_characteristics(mdot, prop_mass, r, l_o, l_f, index, res_text):
     with open(rkt_prefix+'psas_rocket_'+index+'_traj.txt', 'w') as traj:
         for line in res_text:
             traj.write(line)
-        traj.close()
 
 # create a rocket file for our engine's dimensions and characteristics
 def update_body(index, eng_r, l_o, l_f):
     unzip() # unpack template
+    
     with open('rocket.ork', 'rb') as xml_file:
         tree = ET.parse(xml_file)
         root = tree.getroot()
@@ -268,10 +266,13 @@ def update_body(index, eng_r, l_o, l_f):
             for kid in child.iterfind("*[name='LOX Tank']"):
                 kid.find('length').text = str(l_o) # set lox tank length
         tree.write('rocket.ork')
+
     zipit(index) # repack template
     print("Template rocket updated!")
 
 # when a father engine and a mother engine love each other very much...
+# they make an openrocket engine 
+# that is approximately equivalent to the trajectory profile from the optimimization
 def make_engine(mdot, prop_mass, total_dia, Thrust, Burn_time, Isp, res_text):
     index = str(get_index())
     r, l_o, l_f = split_tanks(prop_mass, total_dia)
@@ -346,7 +347,6 @@ def make_engine(mdot, prop_mass, total_dia, Thrust, Burn_time, Isp, res_text):
         for d in data:
             eng.write(d)
         eng.write(file_tail)
-        eng.close()
         
     update_body(index, r, l_o, l_f) # make a rocket to correspond with our new engine
     print("Reopen OpenRocket to run simulation.")
