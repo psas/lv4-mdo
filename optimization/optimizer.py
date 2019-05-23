@@ -4,6 +4,9 @@
 
 # Nelder-Mead simplex search
 # 6 iterations with timestep 0.25 took my laptop 6 minutes to complete
+# I have NO IDEA whether either of those two parameters are appropriate yet
+# ideally, we'd iterate until predefined criteria are met
+
 # need to: error analysis on trajectory to find ideal time-step
 #          somehow analyze optimizer to find proper number of iterations
 #          which might require writing our own optimizer that won't attempt
