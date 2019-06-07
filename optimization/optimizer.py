@@ -103,7 +103,7 @@ def barrier(var, cons, int_point=False, good_if_less_than=True):
                 return -interior(-(var/cons - 1))
     except:
         dbz += 1 # keep track of divisions by zero, side effect
-        return 10**10
+        return float('inf')
 
 # this manages all our constraints
 # penalty parameters: mu -> 0 and rho -> infinity 
