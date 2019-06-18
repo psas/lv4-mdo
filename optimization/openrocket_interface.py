@@ -218,32 +218,35 @@ def c_of_m(prop_mass, total_dia, mdot, t):
 ### File IO functions
 # Takes rocket properties from optimized trajectory and creates a list of all relevant properties
 def print_characteristics(mdot, prop_mass, r, l_o, l_f, index, res_text):
+    res_text.append("\n")
+    res_text.append("\nENGINE SYSTEM DETAILS")
+    res_text.append("\n-----------------------------")
     # Mass flow for each propllent
     mdot_o, mdot_f = proportion(mdot)
-    res_text.append("\nOx flow: . . . . . . . %7.3f kg/s" % mdot_o)
-    res_text.append("\nFuel flow:             %7.3f kg/s" % mdot_f)
+    res_text.append("\nOx flow: . . . . . . . . . . %7.3f kg/s" % mdot_o)
+    res_text.append("\nFuel flow:                   %7.3f kg/s" % mdot_f)
     
     # Propellent Mass for each propllent
     mprop_o, mprop_f = proportion(prop_mass)
-    res_text.append("\nOx mass:               %5.1f kg" % mprop_o)
-    res_text.append("\nFuel mass: . . . . . . %5.1f kg" % mprop_f)
+    res_text.append("\nOx mass: . . . . . . . . . . . %5.3f kg" % mprop_o)
+    res_text.append("\nFuel mass:                     %5.3f kg" % mprop_f)
     
     # dimensions of each tank
-    res_text.append("\nTank diameters:        %7.3f m" % (r*2))
-    res_text.append("\nOx tank length + ullage: . . . .%7.3f m" % l_o)
-    res_text.append("\nFuel tank length + ullage:      %7.3f m" % l_f)
+    res_text.append("\nTank diameters: . . . . . . . %7.3f m" % (r*2))
+    res_text.append("\nOx tank length + ullage:      %7.3f m" % l_o)
+    res_text.append("\nFuel tank length + ullage:    %7.3f m" % l_f)
     
     # Tank thickness for each tank (mm)
     thickness_o = tank_thickness(Al, r)
     thickness_f = tank_thickness(Tank, r)
-    res_text.append("\nOx tank thickness:        %5.1f mm" % (thickness_o*1000))
-    res_text.append("\nFuel tank thickness:        %5.1f mm" % (thickness_f*1000))
+    res_text.append("\nOx tank thickness:            %5.3f mm" % (thickness_o*1000))
+    res_text.append("\nFuel tank thickness:          %5.3f mm" % (thickness_f*1000))
     
     # Mass of each tank
     m_tank_o = tank_mass(l_o, Al, r)
     m_tank_f = tank_mass(l_f, Tank, r)
-    res_text.append("\nOx tank mass: . . . . .%5.1f kg" % m_tank_o)
-    res_text.append("\nFuel tank mass:        %5.1f kg" % m_tank_f)
+    res_text.append("\nOx tank mass: . . . . . . . . %5.3f kg" % m_tank_o)
+    res_text.append("\nFuel tank mass:               %5.3f kg" % m_tank_f)
     
     # create a file with all this info in it
     with open(rkt_prefix+'psas_rocket_'+index+'_traj.txt', 'w') as traj:

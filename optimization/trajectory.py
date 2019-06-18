@@ -125,12 +125,12 @@ class Rocket(EngineSys):
     # Subsystem dry masses, needs sanity check from dirty ME's
     def dry_mass(self, engine_sys_mass):
         m_ringsclamps = (.466 + 1) * 7                    # weights of rings and clamps [kg]
-        m_nosecone = 9.25                                   # nosecone weight [kg]
+        m_nosecone = 9                                   # nosecone weight [kg]
         m_recovery = 4                                    # Recovery system mass [kg]
         m_payload = 4                                     # Payload mass  [kg]
         m_avionics = 3.3                                  # Avionics mass  [kg]
         m_n2      = 4                                     # mass of n2 tank [kg]
-        m_airframe = 0.00125 * openrkt.CF['rho'] * \
+        m_airframe = 0.00132 * openrkt.CF['rho'] * \
             ((self.total_length - 0.0) *pi*self.dia)      # Airframe mass [kg]
         m_fins = 8.35                                      # total fin mass [kg], estimate from openrocket
         return (m_ringsclamps + m_nosecone + m_recovery \
@@ -147,8 +147,8 @@ class Environment(Rocket):
         # Drag coefficient look up
         self.C_d_t = []
         self.Ma_t = []
-        #csv_file = open('lv4.csv')     # use estimated drag data from openrocket for one of our lv4 designs
-        csv_file = open('aerobee.csv') # Use aerobee 150 drag data, perhaps a pessimistic estimate, but has the right shape and approximate range
+        csv_file = open('lv4_vacuum.csv')     # use estimated drag data from openrocket for one of our lv4 designs
+        #csv_file = open('aerobee.csv') # Use aerobee 150 drag data, perhaps a pessimistic estimate, but has the right shape and approximate range
         drag_data = csv.reader(csv_file, delimiter=',')
         for row in drag_data:
             self.Ma_t.append(float(row[0]))

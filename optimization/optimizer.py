@@ -32,10 +32,10 @@ launch_site_alt = 1401 # m, altitude of launch site above sea level
 
 ##CHANGE INITIAL DESIGN GUESS HERE
 # be sure that you start with a feasible design, otherwise the problem will be ill-conditioned
-L = 1.5    # Total tank lengths (m)
-mdot = 2.4 # Propellant mass flow rate (kg/s)
+L = 1.6    # Total tank lengths (m)
+mdot = 2. # Propellant mass flow rate (kg/s)
 dia = 12.  # Rocket diameter (in)
-p_e = 37.  # Exit Pressure (kPa)
+p_e = 47.  # Exit Pressure (kPa)
 
 #CHANGE CONSTRAINTS HERE
 cons_mass = 200.                         # GLOW constraint, kg, somewhat arbitrary
@@ -44,7 +44,7 @@ cons_TWR = 2.                            # TWR constraint
 cons_S_crit = 0.35                       # Critical pressure ratio constraint
 cons_accel = 15.                         # Max acceleration constraint, g's
 cons_LD = 18.                            # L/D ratio constraint, slightly arbitrary
-cons_alt = 105000. + launch_site_alt     # Min altitude constraint, km (adjusted to overshoot)
+cons_alt = 106000. + launch_site_alt     # Min altitude constraint, km (adjusted to overshoot)
 cons_thrust = 6.                         # max ground-level thrust, kN
 cons_ceiling = 150000. + launch_site_alt # base-11 maximum apogee requirement, km
 
@@ -214,10 +214,10 @@ def print_results(res):
     text_base.append('\nL/D ratio (c.f. < {})                      = {:.3f}'.format(cons_LD, ld_ratio(eng_sys_len, dia)))
     text_base.append('\nSommerfield criterion (c.f. pe/pa >= {})   = {:.3f}'.format(cons_S_crit, sim.S_crit))
     text_base.append("\nMax acceleration (c.f. < {})               = {:.3f} g's".format(cons_accel, max_g_force(sim.a)))
-    text_base.append('\nTWR at lift off (c.f. > {})                = {:.3f}'.format(cons_TWR, sim.TWR))
-    text_base.append('\naltitude at apogee (c.f. > {})             = {:.3f} km'.format(cons_alt/1000, sim.alt[-1]/1000))
+    text_base.append('\nTWR at lift off (c.f. > {})                 = {:.3f}'.format(cons_TWR, sim.TWR))
+    text_base.append('\naltitude at apogee (c.f. > {})          = {:.3f} km'.format(cons_alt/1000, sim.alt[-1]/1000))
     text_base.append('\nspeed when leaving launch rail (c.f. > {}) = {:.3f} m/s'.format(cons_ls, sim.launch_speed))
-    text_base.append('\ndesign thrust (ground level) (c.f. = {})   = {:.3f} kN'.format(cons_thrust, sim.F[0]/1000))
+    text_base.append('\ndesign thrust (ground level) (c.f. = {})    = {:.3f} kN'.format(cons_thrust, sim.F[0]/1000))
 
     text_base.append('\n')
     text_base.append('\nADDITIONAL INFORMATION')
