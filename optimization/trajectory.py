@@ -16,7 +16,7 @@ launch_tower = 60. # launch rail height in ft
 air_cutoff   = 25. # Pa, ambient pressure at which we no longer care about air
 
 # upper subsystem dimensions
-nose_l = 1.25        # m
+nose_l = 1.50        # m
 ers_l  = 6 * 0.0254  # m (converted from in)
 rcs_l  = 6 * 0.0254  # m (converted from in)
 av_l   = 18 * 0.0254 # m (converted from in)
@@ -125,14 +125,14 @@ class Rocket(EngineSys):
     # Subsystem dry masses, needs sanity check from dirty ME's
     def dry_mass(self, engine_sys_mass):
         m_ringsclamps = (.466 + 1) * 7                    # weights of rings and clamps [kg]
-        m_nosecone = 18.5                                 # nosecone weight [kg]
+        m_nosecone = 9.25                                   # nosecone weight [kg]
         m_recovery = 4                                    # Recovery system mass [kg]
         m_payload = 4                                     # Payload mass  [kg]
         m_avionics = 3.3                                  # Avionics mass  [kg]
         m_n2      = 4                                     # mass of n2 tank [kg]
         m_airframe = 0.00125 * openrkt.CF['rho'] * \
             ((self.total_length - 0.0) *pi*self.dia)      # Airframe mass [kg]
-        m_fins = 6.2                                      # total fin mass [kg], estimate from openrocket
+        m_fins = 8.35                                      # total fin mass [kg], estimate from openrocket
         return (m_ringsclamps + m_nosecone + m_recovery \
             + m_payload + m_avionics + m_n2 + \
             engine_sys_mass + m_airframe + m_fins)

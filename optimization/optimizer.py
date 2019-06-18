@@ -25,25 +25,26 @@ global allvectors, dbz
 dbz = 0 # divisions by zero (from crossing constraint boundary)
 
 # SIMULATION AND OPTIMIZATION PARAMETERS
+epsilon = 10**(-6)     # a guess at a good margin for "convergence"
 time_step = 0.25       # change time-step for trajectory simulation, need to find best step size
-iterations = 6         # number of escalating iterations, degenerates after 6!
+iterations = 25         # number of escalating iterations, hits barrier func at ~6
 launch_site_alt = 1401 # m, altitude of launch site above sea level
 
 ##CHANGE INITIAL DESIGN GUESS HERE
 # be sure that you start with a feasible design, otherwise the problem will be ill-conditioned
 L = 1.5    # Total tank lengths (m)
-mdot = 2.2 # Propellant mass flow rate (kg/s)
+mdot = 2.4 # Propellant mass flow rate (kg/s)
 dia = 12.  # Rocket diameter (in)
-p_e = 47.  # Exit Pressure (kPa)
+p_e = 37.  # Exit Pressure (kPa)
 
 #CHANGE CONSTRAINTS HERE
-cons_mass = 200.                         # GLOW constraint, kg
+cons_mass = 200.                         # GLOW constraint, kg, somewhat arbitrary
 cons_ls = 22.                            # min launch speed from 60' tower constraint, m/s
 cons_TWR = 2.                            # TWR constraint
 cons_S_crit = 0.35                       # Critical pressure ratio constraint
 cons_accel = 15.                         # Max acceleration constraint, g's
-cons_LD = 18.                            # L/D ratio constraint
-cons_alt = 100000. + launch_site_alt     # Min altitude constraint, km
+cons_LD = 18.                            # L/D ratio constraint, slightly arbitrary
+cons_alt = 105000. + launch_site_alt     # Min altitude constraint, km (adjusted to overshoot)
 cons_thrust = 6.                         # max ground-level thrust, kN
 cons_ceiling = 150000. + launch_site_alt # base-11 maximum apogee requirement, km
 
@@ -160,10 +161,12 @@ def f(x, n=4):
 def iterate(f, x_0, n):
     x = x_0 # initial design vector
     global dbz
+    obj_fun = []
     for i in range(n):
         print("Iteration " + str(i+1) + ":")
         res = minimize(f, x, args=(i+0), method='nelder-mead', options={'disp': True, 'adaptive':True}) # this minimizer uses simplex method
         x = res.x # feed optimal design vec into next iteration
+        obj_fun.append(res.fun) # we want to compare sequential objectives so we stop when convergence criteria met
         alt = trajectory.trajectory(x[0], x[1], dia, x[2], x_init=launch_site_alt, dt=time_step).alt
         
         print("         Divisions by zero (extreme violations of altitude window): "+str(dbz))
@@ -173,6 +176,9 @@ def iterate(f, x_0, n):
         print("Altitude (km): "+str(alt[-1]))
         print('')
         dbz=0 # I only care about divisions by zero in each individual iteration, side effect
+        if (i > 0) and (abs(obj_fun[i] - obj_fun[i - 1]) < epsilon):
+            print("Converged early!")
+            return x
     return x
 
 # this creates a list of strings for relevant data of trajectory
@@ -211,7 +217,7 @@ def print_results(res):
     text_base.append('\nTWR at lift off (c.f. > {})                = {:.3f}'.format(cons_TWR, sim.TWR))
     text_base.append('\naltitude at apogee (c.f. > {})             = {:.3f} km'.format(cons_alt/1000, sim.alt[-1]/1000))
     text_base.append('\nspeed when leaving launch rail (c.f. > {}) = {:.3f} m/s'.format(cons_ls, sim.launch_speed))
-    text_base.append('\ndesign thrust (ground level) (c.f. < {})   = {:.3f} kN'.format(cons_thrust, sim.F[0]/1000))
+    text_base.append('\ndesign thrust (ground level) (c.f. = {})   = {:.3f} kN'.format(cons_thrust, sim.F[0]/1000))
 
     text_base.append('\n')
     text_base.append('\nADDITIONAL INFORMATION')
@@ -336,9 +342,9 @@ if __name__ == '__main__': # Testing
     # feed initial design into iterative optimizer, get best design
     res = iterate(f, X0, iterations)
     
-    # this block is for probing design space within bounds
-    # these parameters were an experiment, idk how genetic algorithms work at all
-    #res = differential_evolution(f, [(1.2, 1.9), (1.5, 3.), (30, 50)], \
+    # this block is for probing design space within reasonable bounds
+    # these parameters were an experiment, idk which are appropriate yet
+    #res = differential_evolution(f, [(1.0, 1.7), (1.5, 3.0), (30, 60)], \
                 #strategy='best1exp', popsize=50, mutation=(.6,1.8), recombination=.1, polish=True,workers=-1, disp=True)
     #res=res.x
     
