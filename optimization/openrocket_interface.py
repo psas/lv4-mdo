@@ -39,7 +39,6 @@ CF    = { 'rho': 1550.0,    # kg/m^3       Density
 # Engine system dimensions
 Tank     =  CF             # Choose from above table, ignore steel
 gaps     =  0.050          # m ###CHECK ME
-m_plumb  =  5.0            # kg
 m_feed   =  10.0           # kg
 l_feed   =  0.4572         # m, this is 18"
 m_ems    =  1              # kg
@@ -94,8 +93,8 @@ def get_index():
 # Consider that there are two tanks, and we will want to divide total mass flow rate and propellant mass
 # generic division, oxygen first, fuel second
 def proportion(amount):
-    stuff_o = amount / (1 + (1/OF))
-    stuff_f = amount / (1 + OF)
+    stuff_o = amount * OF/(1 + OF)
+    stuff_f = amount * 1/(1 + OF)
     return stuff_o, stuff_f
 
 
@@ -125,7 +124,6 @@ def split_tanks(prop_mass, total_dia):
 # tank thickness ###CHECK ME
 def tank_thickness(tank, r):
     #P_i = 3.042e6  # OLD ASSUMPTION!! Tank pressure in Pa, assuming pressure fed with regulator (roughly 441 psig)
-    
     P_i = 689475.7 # Tank pressure in Pa (~100 PSI), assuming pressurized by N2 and ramped up later by EFS
     design_stress = tank['Sy']/factor_of_safety
     radius_i = sqrt(design_stress * (r**2) / ((2*P_i) + design_stress)) # inner radius
@@ -157,7 +155,7 @@ def system_length(l_o, l_f):
 def system_mass(r, l_o, l_f):
     bulkheads = bulkhead(body_r(r))
     t1, t2 = tank_builder(r, l_o, l_f)
-    return sum([m_engine, m_plumb, m_ems, m_feed, t1, t2, 4*bulkheads])
+    return sum([m_engine, m_ems, m_feed, t1, t2, 4*bulkheads])
 
 # dry center of mass of engine system, note these are positions not lengths
 def dry_c_of_m(r, l_o, l_f):

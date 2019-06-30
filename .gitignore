@@ -57,6 +57,6 @@ target/
 .ipynb_checkpoints
 
 # our stuff
-*.rse
+#*.rse
 #*.csv
 optimization/rocket_farm/

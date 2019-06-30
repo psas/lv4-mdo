@@ -1,6 +1,5 @@
 # could improve:
 # drag coefficients (barrowman??)
-# gravity
 
 from math import sqrt, pi, exp, log, cos, sin, radians
 import numpy as np
@@ -125,14 +124,14 @@ class Rocket(EngineSys):
     # Subsystem dry masses, needs sanity check from dirty ME's
     def dry_mass(self, engine_sys_mass):
         m_ringsclamps = (.466 + 1) * 7                    # weights of rings and clamps [kg]
-        m_nosecone = 9                                   # nosecone weight [kg]
+        m_nosecone = 10                                   # nosecone weight [kg]
         m_recovery = 4                                    # Recovery system mass [kg]
         m_payload = 4                                     # Payload mass  [kg]
         m_avionics = 3.3                                  # Avionics mass  [kg]
         m_n2      = 4                                     # mass of n2 tank [kg]
         m_airframe = 0.00132 * openrkt.CF['rho'] * \
             ((self.total_length - 0.0) *pi*self.dia)      # Airframe mass [kg]
-        m_fins = 8.35                                      # total fin mass [kg], estimate from openrocket
+        m_fins = 8.77                                     # total fin mass [kg], estimate from openrocket
         return (m_ringsclamps + m_nosecone + m_recovery \
             + m_payload + m_avionics + m_n2 + \
             engine_sys_mass + m_airframe + m_fins)
@@ -208,12 +207,12 @@ class Environment(Rocket):
         return D, q, Ma
     
     # https://www.sensorsone.com/local-gravity-calculator/
-    # International Gravity Formula IGF) 1980
+    # International Gravity Formula (IGF) 1980
     # Geodetic Reference System 1980 (GRS80)
     # Free Air Correction (FAC)
     def gravity(self, h):
         lat = radians(32) # degrees north, launch site
-        igf = 9.780327 * (1 + 0.0053024 * sin(lat)**2 - 0.0000058 * sin(2*lat)**2 )
+        igf = 9.780327 * (1 + 0.0053024 * sin(lat)**2 - 0.0000058 * sin(2*lat)**2)
         fac = -3.086 * 10**(-6) * h
         return igf + fac
 
@@ -316,40 +315,108 @@ def f(t, x, v, F, D, m, g):
 # this is kinda ugly-looking but should give much better efficiency
 # truly a proper integrator for us sophisticated folk
 # it would probably be most sane to update F, D, m, and g in the same way as x, v, a
-def rungekutta(sim, next_step):
-    k1 = sim.dt * f(sim.t[-1],
-                    sim.alt[-1],
-                    sim.v[-1],
-                    sim.F[-1],
-                    sim.D[-1],
-                    sim.m[-1],
-                    sim.g[-1])
-    k2 = sim.dt * f(sim.t[-1] + sim.dt/2,
-                    sim.alt[-1] + k1[0]*sim.dt/2,
-                    sim.v[-1] + k1[1]*sim.dt/2,
-                    sim.F[-1],
-                    sim.D[-1],
-                    sim.m[-1],
-                    sim.g[-1])
-    k3 = sim.dt * f(sim.t[-1] + sim.dt/2,
-                    sim.alt[-1] + k2[0]*sim.dt/2,
-                    sim.v[-1] + k2[1]*sim.dt/2,
-                    sim.F[-1],
-                    sim.D[-1],
-                    sim.m[-1],
-                    sim.g[-1])
-    k4 = sim.dt * f(sim.t[-1] + sim.dt,
-                    sim.alt[-1] + k3[0]*sim.dt,
-                    sim.v[-1] + k3[1]*sim.dt,
-                    sim.F[-1],
-                    sim.D[-1],
-                    sim.m[-1],
-                    sim.g[-1])
+def rungekutta_fast(sim, next_step):
+    k1 = f(sim.t[-1],
+            sim.alt[-1],
+            sim.v[-1],
+            sim.F[-1],
+            sim.D[-1],
+            sim.m[-1],
+            sim.g[-1])
+    k2 = f(sim.t[-1] + sim.dt/2,
+            sim.alt[-1] + k1[0]*sim.dt/2,
+            sim.v[-1] + k1[1]*sim.dt/2,
+            sim.F[-1],
+            sim.D[-1],
+            sim.m[-1],
+            sim.g[-1])
+    k3 = f(sim.t[-1] + sim.dt/2,
+            sim.alt[-1] + k2[0]*sim.dt/2,
+            sim.v[-1] + k2[1]*sim.dt/2,
+            sim.F[-1],
+            sim.D[-1],
+            sim.m[-1],
+            sim.g[-1])
+    k4 = f(sim.t[-1] + sim.dt,
+            sim.alt[-1] + k3[0]*sim.dt,
+            sim.v[-1] + k3[1]*sim.dt,
+            sim.F[-1],
+            sim.D[-1],
+            sim.m[-1],
+            sim.g[-1])
     
-    next_step.alt.append(sim.alt[-1] + (k1[0] + 2*k2[0] + 2*k3[0] + k4[0]) / 6 )
-    next_step.v.append(sim.v[-1] + (k1[1] + 2*k2[1] + 2*k3[1] + k4[1]) / 6 )
+    next_step.alt.append(sim.alt[-1] + sim.dt * (k1[0] + 2*k2[0] + 2*k3[0] + k4[0]) / 6 )
+    next_step.v.append(sim.v[-1] + sim.dt * (k1[1] + 2*k2[1] + 2*k3[1] + k4[1]) / 6 )
     return next_step
 
+def rungekutta_med(sim, next_step):
+    k1 = f(sim.t[-1],
+            sim.alt[-1],
+            sim.v[-1],
+            sim.F[-1],
+            sim.D[-1],
+            sim.m[-1],
+            sim.g[-1])
+    k2 = f(sim.t[-1] + sim.dt/2,
+            sim.alt[-1] + k1[0]*sim.dt/2,
+            sim.v[-1] + k1[1]*sim.dt/2,
+            0 if sim.F[-1]==0 else sim.thrust(sim.alt[-1] + k1[0]*sim.dt/2),
+            sim.drag(sim.alt[-1] + k1[0]*sim.dt/2, sim.v[-1] + k1[1]*sim.dt/2)[0],
+            sim.m[-1],
+            sim.g[-1])
+    k3 = f(sim.t[-1] + sim.dt/2,
+            sim.alt[-1] + k2[0]*sim.dt/2,
+            sim.v[-1] + k2[1]*sim.dt/2,
+            0 if sim.F[-1]==0 else sim.thrust(sim.alt[-1] + k2[0]*sim.dt/2),
+            sim.drag(sim.alt[-1] + k2[0]*sim.dt/2, sim.v[-1] + k2[1]*sim.dt/2)[0],
+            sim.m[-1],
+            sim.g[-1])
+    k4 = f(sim.t[-1] + sim.dt,
+            sim.alt[-1] + k3[0]*sim.dt,
+            sim.v[-1] + k3[1]*sim.dt,
+            0 if sim.F[-1]==0 else sim.thrust(sim.alt[-1] + k3[0]*sim.dt),
+            sim.drag(sim.alt[-1] + k3[0]*sim.dt, sim.v[-1] + k3[1]*sim.dt)[0],
+            sim.m[-1],
+            sim.g[-1])
+    
+    next_step.alt.append(sim.alt[-1] + sim.dt * (k1[0] + 2*k2[0] + 2*k3[0] + k4[0]) / 6 )
+    next_step.v.append(sim.v[-1] + sim.dt * (k1[1] + 2*k2[1] + 2*k3[1] + k4[1]) / 6 )
+    return next_step
+   
+def rungekutta_slow(sim, next_step):
+    k1 = f(sim.t[-1],
+            sim.alt[-1],
+            sim.v[-1],
+            sim.F[-1],
+            sim.D[-1],
+            sim.m[-1],
+            sim.g[-1])
+    k2 = f(sim.t[-1] + sim.dt/2,
+            sim.alt[-1] + k1[0]*sim.dt/2,
+            sim.v[-1] + k1[1]*sim.dt/2,
+            0 if sim.F[-1]==0 else sim.thrust(sim.alt[-1] + k1[0]*sim.dt/2),
+            sim.drag(sim.alt[-1] + k1[0]*sim.dt/2, sim.v[-1] + k1[1]*sim.dt/2)[0],
+            sim.m_dry + sim.m_prop[-1] - (0 if sim.F[-1]==0 else sim.mdot*sim.dt/2),
+            sim.gravity(sim.alt[-1] + k1[0]*sim.dt/2))
+    k3 = f(sim.t[-1] + sim.dt/2,
+            sim.alt[-1] + k2[0]*sim.dt/2,
+            sim.v[-1] + k2[1]*sim.dt/2,
+            0 if sim.F[-1]==0 else sim.thrust(sim.alt[-1] + k2[0]*sim.dt/2),
+            sim.drag(sim.alt[-1] + k2[0]*sim.dt/2, sim.v[-1] + k2[1]*sim.dt/2)[0],
+            sim.m_dry + sim.m_prop[-1] - (0 if sim.F[-1]==0 else sim.mdot*sim.dt/2),
+            sim.gravity(sim.alt[-1] + k2[0]*sim.dt/2))
+    k4 = f(sim.t[-1] + sim.dt,
+            sim.alt[-1] + k3[0]*sim.dt,
+            sim.v[-1] + k3[1]*sim.dt,
+            0 if sim.F[-1]==0 else sim.thrust(sim.alt[-1] + k3[0]*sim.dt),
+            sim.drag(sim.alt[-1] + k3[0]*sim.dt, sim.v[-1] + k3[1]*sim.dt)[0],
+            sim.m_dry + sim.m_prop[-1] - (0 if sim.F[-1]==0 else sim.mdot*sim.dt),
+            sim.gravity(sim.alt[-1] + k3[0]*sim.dt))
+    
+    next_step.alt.append(sim.alt[-1] + sim.dt * (k1[0] + 2*k2[0] + 2*k3[0] + k4[0]) / 6 )
+    next_step.v.append(sim.v[-1] + sim.dt * (k1[1] + 2*k2[1] + 2*k3[1] + k4[1]) / 6 )
+    return next_step
+   
 # deprecated function for basic monkey integration
 def forwardeuler(sim, next_step):
     next_step.v.append(sim.v[-1] + sim.dt*sim.a[-1])
@@ -363,7 +430,7 @@ def do_physics(sim, next_step):
     next_step.g.append(sim.gravity(sim.alt[-1]))
     next_step.a.append((sim.F[-1] - sim.D[-1]) / sim.m[-1] - sim.g[-1])
     
-    next_step = rungekutta(sim, next_step)
+    next_step = rungekutta_fast(sim, next_step)
     return sim, next_step
 
 # calculates trajectory of a design, this is important to have right

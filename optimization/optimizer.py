@@ -1,16 +1,9 @@
-# could improve:
-# minimizer
-# actual analysis: error, sensitivity, stability
-
 # Nelder-Mead simplex search
 # 6 iterations with timestep 0.25 took my laptop 6 minutes to complete
-# I have NO IDEA whether either of those two parameters are appropriate yet
-# ideally, we'd iterate until predefined criteria are met
-
-# need to: error analysis on trajectory to find ideal time-step
-#          somehow analyze optimizer to find proper number of iterations
-#          which might require writing our own optimizer that won't attempt
-#          undefined math operations outside the barrier
+# 25 iterations with timestep 0.25 took my laptop 14 minutes
+# I'm not sure if this timestep is ideal, but it works fine
+# still needs actual analysis: 
+# simulation error & sensitivity, optimization stability, design space heat map?
 
 import numpy as np
 from math import sqrt, pi, exp, log, cos
@@ -19,21 +12,20 @@ from scipy.optimize import minimize, differential_evolution
 import trajectory
 import openrocket_interface as openrkt
 
-# i'm sorry for global vars... i'll sanitize namespace soonish
-global cons_TWR, cons_S_crit, cons_accel, cons_LD, cons_alt, X0, m0, cons_mass 
+# i'm sorry for global vars...
 global allvectors, dbz
-dbz = 0 # divisions by zero (from crossing constraint boundary)
+dbz = 0 # arithmetic error tracker (from crossing boundary constraints)
 
 # SIMULATION AND OPTIMIZATION PARAMETERS
 epsilon = 10**(-6)     # a guess at a good margin for "convergence"
 time_step = 0.25       # change time-step for trajectory simulation, need to find best step size
-iterations = 25         # number of escalating iterations, hits barrier func at ~6
+iterations = 25        # number of escalating iterations, hits barrier func at ~6
 launch_site_alt = 1401 # m, altitude of launch site above sea level
 
 ##CHANGE INITIAL DESIGN GUESS HERE
 # be sure that you start with a feasible design, otherwise the problem will be ill-conditioned
-L = 1.6    # Total tank lengths (m)
-mdot = 2. # Propellant mass flow rate (kg/s)
+L = 1.3    # Total tank lengths (m)
+mdot = 2.1 # Propellant mass flow rate (kg/s)
 dia = 12.  # Rocket diameter (in)
 p_e = 47.  # Exit Pressure (kPa)
 
@@ -44,7 +36,7 @@ cons_TWR = 2.                            # TWR constraint
 cons_S_crit = 0.35                       # Critical pressure ratio constraint
 cons_accel = 15.                         # Max acceleration constraint, g's
 cons_LD = 18.                            # L/D ratio constraint, slightly arbitrary
-cons_alt = 106000. + launch_site_alt     # Min altitude constraint, km (adjusted to overshoot)
+cons_alt = 107000. + launch_site_alt     # Min altitude constraint, km (adjusted to overshoot)
 cons_thrust = 6.                         # max ground-level thrust, kN
 cons_ceiling = 150000. + launch_site_alt # base-11 maximum apogee requirement, km
 
@@ -81,11 +73,9 @@ def exterior(var, cons, good_if_less_than=False):
     else:
         return max(0, -(var/cons - 1))**2 / 2
 
-# this restricts our objective function to the strictly feasible region
-# make rockets great again, build that wall, etc, watch out for division by zero
+# this barrier function restricts our objective function to the strictly feasible region
+# make rockets great again, build that wall, etc, watch out for undefined operations
 # i like the logarithmic version more, but interior point method is viable too
-# i'm not sure if our try/except block effects the theoretical convergence result
-# theoretically, the barriers should just work but the simplex method is semi-blind
 def barrier(var, cons, int_point=False, good_if_less_than=True):
     global dbz
     def interior(g): # in case we don't like logarithms
@@ -156,28 +146,28 @@ def f(x, n=4):
     allvectors.append(x) # maintains a list of every design, side effect
     return merit_func
 
-# we want to iterate our optimizer for theoretical convergence reasons (given some assumptions)
-# n = number of sequential iterations, one day this will terminate itself automatically 
+# we want to iterate our optimizer for theoretical "convergence" reasons (given some assumptions)
+# n = number of sequential iterations
 def iterate(f, x_0, n):
     x = x_0 # initial design vector
     global dbz
     obj_fun = []
     for i in range(n):
         print("Iteration " + str(i+1) + ":")
-        res = minimize(f, x, args=(i+0), method='nelder-mead', options={'disp': True, 'adaptive':True}) # this minimizer uses simplex method
+        res = minimize(f, x, args=(i), method='nelder-mead', options={'disp': True, 'adaptive':True}) # this minimizer uses simplex method
         x = res.x # feed optimal design vec into next iteration
         obj_fun.append(res.fun) # we want to compare sequential objectives so we stop when convergence criteria met
         alt = trajectory.trajectory(x[0], x[1], dia, x[2], x_init=launch_site_alt, dt=time_step).alt
         
-        print("         Divisions by zero (extreme violations of altitude window): "+str(dbz))
+        print("         Arithmetic errors (from violations of acceptable altitude window): "+str(dbz))
         print("Propellant tube length (m): "+str(x[0]))
         print("Mass flow rate (kg/s): "+str(x[1]))
         print("Exit pressure (kPa): "+str(x[2]))
-        print("Altitude (km): "+str(alt[-1]))
+        print("Peak Altitude (km): "+str(alt[-1]))
         print('')
         dbz=0 # I only care about divisions by zero in each individual iteration, side effect
         if (i > 0) and (abs(obj_fun[i] - obj_fun[i - 1]) < epsilon):
-            print("Converged early!")
+            print("Done! The difference between the last two function evals was < " + str(epsilon))
             return x
     return x
 
@@ -202,10 +192,11 @@ def print_results(res):
     text_base.append('\ninitial guess GLOW                                    = {:.1f} kg'.format( \
           trajectory.trajectory(X0[0], X0[1], dia, X0[2], x_init=launch_site_alt, dt=time_step).m[0]))
     text_base.append('\nx_optimized                                = ' + ', '.join([str(L), str(mdot), str(p_e)]))
-    text_base.append('\ndesign tankage length                      = {:.3f} m'.format(L))
+    text_base.append('\ndesign airframe diameter                   = {:.3f} in.'.format(dia))
+    text_base.append('\ndesign tankage length (before adjustment)  = {:.3f} m'.format(L))
     text_base.append('\ndesign mass flow rate                      = {:.3f} kg/s'.format(mdot))
     text_base.append('\ndesign nozzle exit pressure                = {:.3f} kPa'.format(p_e))
-    text_base.append('\ndesign airframe diameter                   = {:.3f} in.'.format(dia))
+    text_base.append('\ndesign tankage length (after adjustment)   = {:.3f} m'.format(l_o + l_f))
     text_base.append('\ndesign GLOW                                = {:.3f} kg'.format(sim.m[0]))
     
     text_base.append('\n')
@@ -213,25 +204,25 @@ def print_results(res):
     text_base.append('\n-----------------------------')
     text_base.append('\nL/D ratio (c.f. < {})                      = {:.3f}'.format(cons_LD, ld_ratio(eng_sys_len, dia)))
     text_base.append('\nSommerfield criterion (c.f. pe/pa >= {})   = {:.3f}'.format(cons_S_crit, sim.S_crit))
-    text_base.append("\nMax acceleration (c.f. < {})               = {:.3f} g's".format(cons_accel, max_g_force(sim.a)))
+    text_base.append("\nmax acceleration (c.f. < {})               = {:.3f} gs".format(cons_accel, max_g_force(sim.a)))
     text_base.append('\nTWR at lift off (c.f. > {})                 = {:.3f}'.format(cons_TWR, sim.TWR))
-    text_base.append('\naltitude at apogee (c.f. > {})          = {:.3f} km'.format(cons_alt/1000, sim.alt[-1]/1000))
     text_base.append('\nspeed when leaving launch rail (c.f. > {}) = {:.3f} m/s'.format(cons_ls, sim.launch_speed))
+    text_base.append('\naltitude at apogee (c.f. > {})          = {:.3f} km'.format(cons_alt/1000, sim.alt[-1]/1000))
     text_base.append('\ndesign thrust (ground level) (c.f. = {})    = {:.3f} kN'.format(cons_thrust, sim.F[0]/1000))
 
     text_base.append('\n')
     text_base.append('\nADDITIONAL INFORMATION')
     text_base.append('\n-----------------------------')
+    text_base.append('\ndesign thrust (vacuum)                     = {:.2f} kN'.format(sim.F[sim.F_index - 1]/1000))
+    text_base.append('\ndesign total dry mass                      = {:.3f} kg'.format(sim.m_dry))
+    text_base.append('\ndesign total propellant mass               = {:.3f} kg'.format(sim.m_prop[0]))
     text_base.append('\naltitude at engine ignition                = {:.1f} m'.format(launch_site_alt))
     text_base.append('\nmission time at apogee                     = {:.3f} s'.format(sim.t[-1]))
     text_base.append('\nmission time at burnout                    = {:.3f} s'.format(sim.t[sim.F_index-1]))
-    text_base.append('\ndesign total propellant mass               = {:.3f} kg'.format(sim.m_prop[0]))
-    text_base.append('\ndesign thrust (vacuum)                     = {:.2f} kN'.format(sim.F[sim.F_index - 1]/1000))
-    text_base.append('\ndesign burn time                           = {} s'.format(sim.F_index*time_step))
+    text_base.append('\ndesign chamber pressure                    = {:.3f} psi'.format(350))
     text_base.append('\ndesign expansion ratio                     = {:.3f}'.format(sim.ex))
     text_base.append('\ndesign throat area                         = {:.3f} in.^2'.format(sim.A_t/0.0254**2))
     text_base.append('\ndesign isp                                 = {:.3f} s'.format(sim.Ve/g_n))
-    text_base.append('\ndesign chamber pressure                    = {:.3f} psi'.format(350))
     text_base.append('\ndesign total impulse                       = {:.3f} kN*s'.format(sim.F_index*time_step*(sim.F[sim.F_index - 1]/1000 + sim.F[0]/1000)/2))
     text_base.append('\ndesign dV                                  = {:.3f} km/s'.format(sim.dV1))
     text_base.append('\nestimated minimum required dV              = {:.3f} km/s'.format(sqrt(2*g_n*sim.alt[-1])/1000))
