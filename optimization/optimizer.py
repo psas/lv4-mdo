@@ -357,7 +357,7 @@ if __name__ == '__main__': # Testing
     print('\nMaking an OpenRocket rocket and corresponding engine!')
     
     # create an openrocket file with matching engine for our design (and print/save trajectory data)
-    openrkt.make_engine(mdot, sim.m_prop[0], dia, sim.F[0:sim.F_index], sim.F_index*time_step, sim.Ve/g_n, res_text)
+    openrkt.make_engine(mdot, sim.m_prop[0], dia, sim.F[0:sim.F_index], sim.t[sim.F_index-1], sim.Ve/g_n, res_text)
     
     # draw pretty pictures of optimized trajectory
     rocket_plot(sim.t, sim.alt, sim.v, sim.a, sim.F, sim.q, sim.Ma, sim.m, sim.p_a, sim.D)

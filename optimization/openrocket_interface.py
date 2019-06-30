@@ -46,7 +46,7 @@ l_ems    =  0.1016         # m, this is 4"
 m_engine =  3.0            # kg
 l_engine =  0.300          # m ###CHECK ME
 airframe_offset = 0.007    # m, empirical from lv3
-dist_after_f = 36 * 0.0254 # m (from in), places fuel tank before avionics and N2
+dist_after_f = 0.0 #36 * 0.0254 # m (from in), places fuel tank before avionics and N2
 dist_after_o = 0.0         # m, oxygen tank still in front of feedsys, ems, engine (duh)
 
 

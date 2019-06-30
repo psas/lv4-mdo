@@ -124,7 +124,7 @@ class Rocket(EngineSys):
     # Subsystem dry masses, needs sanity check from dirty ME's
     def dry_mass(self, engine_sys_mass):
         m_ringsclamps = (.466 + 1) * 7                    # weights of rings and clamps [kg]
-        m_nosecone = 10                                   # nosecone weight [kg]
+        m_nosecone = 8.6                                   # nosecone weight [kg]
         m_recovery = 4                                    # Recovery system mass [kg]
         m_payload = 4                                     # Payload mass  [kg]
         m_avionics = 3.3                                  # Avionics mass  [kg]
