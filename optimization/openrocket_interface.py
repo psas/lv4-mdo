@@ -14,7 +14,6 @@ from zipfile import ZipFile
 # Liquid motor variables (Change these!)
 OF = 1.3             # O/F ratio, this is somewhat arbitrary but CEA says its good
 ullage = 1.1         # percentage of length added to a tank to account for not filling
-loss_factor = 1.     # if < 1, then assume thrust is less than ideal (percentage)
 factor_of_safety = 2 # factor of safety
 mass_fudger = 2      # fudge factor for design mass, includes contribution of tank structural lugs, feed system, stress concentrations, welds, slosh baffles etc.
 
@@ -280,9 +279,6 @@ def make_engine(mdot, prop_mass, total_dia, Thrust, Burn_time, Isp, res_text):
     
     print_characteristics(mdot, prop_mass, r, l_o, l_f, index, res_text)
     
-    for F in Thrust:
-        F *= loss_factor # allows us to introduce inefficiency later if we want
-        
     length = system_length(l_o, l_f) + dist_after_f + dist_after_o
     dry_mass = system_mass(r, l_o, l_f)
     

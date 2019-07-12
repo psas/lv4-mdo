@@ -13,6 +13,8 @@ import openrocket_interface as openrkt
 g_n = openrkt.g_n  # Gravitational acceleration [m/s^2]
 launch_tower = 60. # launch rail height in ft
 air_cutoff   = 25. # Pa, ambient pressure at which we no longer care about air
+loss_factor = 1.     # if < 1, then assume thrust is less than ideal (percentage)
+
 
 # upper subsystem dimensions
 nose_l = 1.50        # m
@@ -78,7 +80,7 @@ class EngineSys:
                 (1 - (p_e/p_ch)**((ke - 1)/ke)))           # Exhaust velocity       [m/s]
             
             self.f_init = True # save time by only running this block once
-        return mdot*self.Ve + (p_e - p_a)*self.A_e         # Thrust force, ignoring that isp increases w/ p_ch [N]
+        return loss_factor*(mdot*self.Ve + (p_e - p_a)*self.A_e) # Thrust force, ignoring that isp increases w/ p_ch [N]
 
 # this class is for conceptual clarity to keep rocket externals and internals organized
 class Rocket(EngineSys):
@@ -154,7 +156,7 @@ class Environment(Rocket):
             self.C_d_t.append(float(row[1]))
         
         # air
-        self.g = [g_n] #[self.gravity(self.alt[0])]
+        self.g = [self.gravity(self.alt[0])] # gravity
         self.ka = 1.4                   # Ratio of specific heats, air  
         self.Ra = 287.1                 # Avg. specific gas constant (dry air)
         p_a, rho, T_a = self.std_at(self.alt[0])
@@ -274,7 +276,7 @@ def phase_driver(sim, next_step):
 
         # no propellant now, did we have it last moment (if there was a last moment)?
         if (sim.motor_burnout == False) and (len(sim.m_prop) >= 2) and (sim.m_prop[-2] > 0):
-            sim.F_index = len(sim.m_prop) # need to calculate burn time
+            sim.F_index = len(sim.m_prop) - 1 # need to calculate burn time, not including this unfueled step
             sim.motor_burnout = True
             # here we may want to eventually calculate CoM and CoP to get stability
             # it would be annoying, but possibly useful
@@ -307,7 +309,7 @@ def air_exists(sim, next_step):
 
 # helper func for runge kutta, this is our ODE :)
 # v = dx/dt, a = dv/dt
-def f(t, x, v, F, D, m, g):
+def ode_f(t, x, v, F, D, m, g):
     v = v
     a = (F - D)/m - g
     return np.array([v, a])
@@ -316,28 +318,28 @@ def f(t, x, v, F, D, m, g):
 # truly a proper integrator for us sophisticated folk
 # it would probably be most sane to update F, D, m, and g in the same way as x, v, a
 def rungekutta_fast(sim, next_step):
-    k1 = f(sim.t[-1],
+    k1 = ode_f(sim.t[-1],
             sim.alt[-1],
             sim.v[-1],
             sim.F[-1],
             sim.D[-1],
             sim.m[-1],
             sim.g[-1])
-    k2 = f(sim.t[-1] + sim.dt/2,
+    k2 = ode_f(sim.t[-1] + sim.dt/2,
             sim.alt[-1] + k1[0]*sim.dt/2,
             sim.v[-1] + k1[1]*sim.dt/2,
             sim.F[-1],
             sim.D[-1],
             sim.m[-1],
             sim.g[-1])
-    k3 = f(sim.t[-1] + sim.dt/2,
+    k3 = ode_f(sim.t[-1] + sim.dt/2,
             sim.alt[-1] + k2[0]*sim.dt/2,
             sim.v[-1] + k2[1]*sim.dt/2,
             sim.F[-1],
             sim.D[-1],
             sim.m[-1],
             sim.g[-1])
-    k4 = f(sim.t[-1] + sim.dt,
+    k4 = ode_f(sim.t[-1] + sim.dt,
             sim.alt[-1] + k3[0]*sim.dt,
             sim.v[-1] + k3[1]*sim.dt,
             sim.F[-1],
@@ -350,28 +352,28 @@ def rungekutta_fast(sim, next_step):
     return next_step
 
 def rungekutta_med(sim, next_step):
-    k1 = f(sim.t[-1],
+    k1 = ode_f(sim.t[-1],
             sim.alt[-1],
             sim.v[-1],
             sim.F[-1],
             sim.D[-1],
             sim.m[-1],
             sim.g[-1])
-    k2 = f(sim.t[-1] + sim.dt/2,
+    k2 = ode_f(sim.t[-1] + sim.dt/2,
             sim.alt[-1] + k1[0]*sim.dt/2,
             sim.v[-1] + k1[1]*sim.dt/2,
             0 if sim.F[-1]==0 else sim.thrust(sim.alt[-1] + k1[0]*sim.dt/2),
             sim.drag(sim.alt[-1] + k1[0]*sim.dt/2, sim.v[-1] + k1[1]*sim.dt/2)[0],
             sim.m[-1],
             sim.g[-1])
-    k3 = f(sim.t[-1] + sim.dt/2,
+    k3 = ode_f(sim.t[-1] + sim.dt/2,
             sim.alt[-1] + k2[0]*sim.dt/2,
             sim.v[-1] + k2[1]*sim.dt/2,
             0 if sim.F[-1]==0 else sim.thrust(sim.alt[-1] + k2[0]*sim.dt/2),
             sim.drag(sim.alt[-1] + k2[0]*sim.dt/2, sim.v[-1] + k2[1]*sim.dt/2)[0],
             sim.m[-1],
             sim.g[-1])
-    k4 = f(sim.t[-1] + sim.dt,
+    k4 = ode_f(sim.t[-1] + sim.dt,
             sim.alt[-1] + k3[0]*sim.dt,
             sim.v[-1] + k3[1]*sim.dt,
             0 if sim.F[-1]==0 else sim.thrust(sim.alt[-1] + k3[0]*sim.dt),
@@ -384,28 +386,28 @@ def rungekutta_med(sim, next_step):
     return next_step
    
 def rungekutta_slow(sim, next_step):
-    k1 = f(sim.t[-1],
+    k1 = ode_f(sim.t[-1],
             sim.alt[-1],
             sim.v[-1],
             sim.F[-1],
             sim.D[-1],
             sim.m[-1],
             sim.g[-1])
-    k2 = f(sim.t[-1] + sim.dt/2,
+    k2 = ode_f(sim.t[-1] + sim.dt/2,
             sim.alt[-1] + k1[0]*sim.dt/2,
             sim.v[-1] + k1[1]*sim.dt/2,
             0 if sim.F[-1]==0 else sim.thrust(sim.alt[-1] + k1[0]*sim.dt/2),
             sim.drag(sim.alt[-1] + k1[0]*sim.dt/2, sim.v[-1] + k1[1]*sim.dt/2)[0],
             sim.m_dry + sim.m_prop[-1] - (0 if sim.F[-1]==0 else sim.mdot*sim.dt/2),
             sim.gravity(sim.alt[-1] + k1[0]*sim.dt/2))
-    k3 = f(sim.t[-1] + sim.dt/2,
+    k3 = ode_f(sim.t[-1] + sim.dt/2,
             sim.alt[-1] + k2[0]*sim.dt/2,
             sim.v[-1] + k2[1]*sim.dt/2,
             0 if sim.F[-1]==0 else sim.thrust(sim.alt[-1] + k2[0]*sim.dt/2),
             sim.drag(sim.alt[-1] + k2[0]*sim.dt/2, sim.v[-1] + k2[1]*sim.dt/2)[0],
             sim.m_dry + sim.m_prop[-1] - (0 if sim.F[-1]==0 else sim.mdot*sim.dt/2),
             sim.gravity(sim.alt[-1] + k2[0]*sim.dt/2))
-    k4 = f(sim.t[-1] + sim.dt,
+    k4 = ode_f(sim.t[-1] + sim.dt,
             sim.alt[-1] + k3[0]*sim.dt,
             sim.v[-1] + k3[1]*sim.dt,
             0 if sim.F[-1]==0 else sim.thrust(sim.alt[-1] + k3[0]*sim.dt),

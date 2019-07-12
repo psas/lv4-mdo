@@ -9,28 +9,36 @@ import numpy as np
 from math import sqrt, pi, exp, log, cos
 from scipy.optimize import minimize, differential_evolution
 
+import pylab
+import matplotlib
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
+from matplotlib import rc
+
 import trajectory
 import openrocket_interface as openrkt
 
+   
+
 # i'm sorry for global vars...
-global allvectors, dbz
+global allvectors, dbz, allobjval
 dbz = 0 # arithmetic error tracker (from crossing boundary constraints)
 
 # SIMULATION AND OPTIMIZATION PARAMETERS
-epsilon = 10**(-6)     # a guess at a good margin for "convergence"
+delta = 10**(-6)       # a guess at a good margin for design "convergence"
 time_step = 0.25       # change time-step for trajectory simulation, need to find best step size
 iterations = 25        # number of escalating iterations, hits barrier func at ~6
 launch_site_alt = 1401 # m, altitude of launch site above sea level
 
 ##CHANGE INITIAL DESIGN GUESS HERE
 # be sure that you start with a feasible design, otherwise the problem will be ill-conditioned
-L = 1.3    # Total tank lengths (m)
-mdot = 2.1 # Propellant mass flow rate (kg/s)
+L = 1.4    # Total tank lengths (m)
+mdot = 2.6 # Propellant mass flow rate (kg/s)
 dia = 12.  # Rocket diameter (in)
-p_e = 47.  # Exit Pressure (kPa)
+p_e = 80.  # Exit Pressure (kPa)
 
 #CHANGE CONSTRAINTS HERE
-cons_mass = 200.                         # GLOW constraint, kg, somewhat arbitrary
+cons_mass = 200.                         # GLtvwOW constraint, kg, somewhat arbitrary
 cons_ls = 22.                            # min launch speed from 60' tower constraint, m/s
 cons_TWR = 2.                            # TWR constraint
 cons_S_crit = 0.35                       # Critical pressure ratio constraint
@@ -44,6 +52,7 @@ shirt_l = trajectory.shirt_l  # non-engine subsystems lengths
 g_n = openrkt.g_n             # standard gravity
 X0 = np.array([L, mdot, p_e]) # numpy arrays are nicer
 allvectors = []               # array for all design vecs, global variable
+allobjfun = []
 
 # calculates length-diameter ratio
 def ld_ratio(pants_l, dia):
@@ -113,8 +122,8 @@ def penalty(ls, F, LD, TWR, S_crit, alt, max_g, mu, rho):
 # Pseudo-objective function
 # x is array of design parameters, n is sequence index of penalty and barrier functions
 # print blocks are sanity checks so i'm not staring at a blank screen and can see what various tweaks actually do
-def f(x, n=4):
-    global allvectors
+def f(x, n=12):
+    global allvectors, allobjfun
     L    = x[0]  # Tank length (m)
     mdot = x[1]  # Propellant mass flow rate (kg/s)
     p_e  = x[2]  # Pressure (kPa)
@@ -132,18 +141,19 @@ def f(x, n=4):
                   sim.S_crit,
                   sim.alt[-1],
                   max_g_force(sim.a),
-                  (0.80) / (2**n),   # initial mu and
+                  (0.10) / (2**n),   # initial mu and
                   (1.25) * (2**n)) #                rho are selected for nice behavior
     # add objective and penalty functions
     merit_func = obj_func + pen_func
     
     # DEBUG BLOCK
-    #print("obj: "+str(obj))
+    #print("obj: "+str(obj_func))
     #print("Total (n): "+str(sum_func) + ' ('+ str(n) +')')
     #print("L "+ str(L)+ ", D " + str(dia)+ ", mdot " + str(mdot)+ ", p_e "+  str(p_e)+ ", alt "+  str(sim.alt[-1]))
-    #print("obj "+ str(obj)+ ' + pen '+ str(pen)+ ' = '+ str(sum_func))
+    #print("obj "+ str(obj_func)+ ' + pen '+ str(pen_func)+ ' = '+ str(merit_func))
     #print('')
     allvectors.append(x) # maintains a list of every design, side effect
+    allobjfun.append(log(merit_func))
     return merit_func
 
 # we want to iterate our optimizer for theoretical "convergence" reasons (given some assumptions)
@@ -151,12 +161,14 @@ def f(x, n=4):
 def iterate(f, x_0, n):
     x = x_0 # initial design vector
     global dbz
-    obj_fun = []
+    designs = []
+    #obj_func_values = []
     for i in range(n):
         print("Iteration " + str(i+1) + ":")
         res = minimize(f, x, args=(i), method='nelder-mead', options={'disp': True, 'adaptive':True}) # this minimizer uses simplex method
         x = res.x # feed optimal design vec into next iteration
-        obj_fun.append(res.fun) # we want to compare sequential objectives so we stop when convergence criteria met
+        designs.append(res.x) # we want to compare sequential designs so we stop when convergence criteria met
+        #obj_func_values.append(log(res.fun)) # it may be informative to depict the iterations seeming to converge
         alt = trajectory.trajectory(x[0], x[1], dia, x[2], x_init=launch_site_alt, dt=time_step).alt
         
         print("         Arithmetic errors (from violations of acceptable altitude window): "+str(dbz))
@@ -166,9 +178,14 @@ def iterate(f, x_0, n):
         print("Peak Altitude (km): "+str(alt[-1]))
         print('')
         dbz=0 # I only care about divisions by zero in each individual iteration, side effect
-        if (i > 0) and (abs(obj_fun[i] - obj_fun[i - 1]) < epsilon):
-            print("Done! The difference between the last two function evals was < " + str(epsilon))
-            return x
+        if (i > 0) and (sqrt(sum([(designs[-1][k] - designs[-2][k])**2 for k in range(len(x))])) < delta):
+            print("Done! The Euclidean distance between the last two designs was < " + str(delta))
+            break
+    #fig = plt.figure()
+    #ax = fig.add_subplot(111)
+    #ax.plot(obj_func_values, "r", label="Objective Function Evaluations (Logorithmic Scale)")
+    #ax.legend()
+    #plt.show()
     return x
 
 # this creates a list of strings for relevant data of trajectory
@@ -213,28 +230,23 @@ def print_results(res):
     text_base.append('\n')
     text_base.append('\nADDITIONAL INFORMATION')
     text_base.append('\n-----------------------------')
-    text_base.append('\ndesign thrust (vacuum)                     = {:.2f} kN'.format(sim.F[sim.F_index - 1]/1000))
+    text_base.append('\ndesign thrust (vacuum)                     = {:.2f} kN'.format(sim.F[sim.F_index]/1000))
     text_base.append('\ndesign total dry mass                      = {:.3f} kg'.format(sim.m_dry))
     text_base.append('\ndesign total propellant mass               = {:.3f} kg'.format(sim.m_prop[0]))
     text_base.append('\naltitude at engine ignition                = {:.1f} m'.format(launch_site_alt))
     text_base.append('\nmission time at apogee                     = {:.3f} s'.format(sim.t[-1]))
-    text_base.append('\nmission time at burnout                    = {:.3f} s'.format(sim.t[sim.F_index-1]))
+    text_base.append('\nmission time at burnout                    = {:.3f} s'.format(sim.t[sim.F_index]))
     text_base.append('\ndesign chamber pressure                    = {:.3f} psi'.format(350))
     text_base.append('\ndesign expansion ratio                     = {:.3f}'.format(sim.ex))
     text_base.append('\ndesign throat area                         = {:.3f} in.^2'.format(sim.A_t/0.0254**2))
     text_base.append('\ndesign isp                                 = {:.3f} s'.format(sim.Ve/g_n))
-    text_base.append('\ndesign total impulse                       = {:.3f} kN*s'.format(sim.F_index*time_step*(sim.F[sim.F_index - 1]/1000 + sim.F[0]/1000)/2))
+    text_base.append('\ndesign total impulse                       = {:.3f} kN*s'.format(sim.t[sim.F_index]*(sim.F[sim.F_index]/1000 + sim.F[0]/1000)/2))
     text_base.append('\ndesign dV                                  = {:.3f} km/s'.format(sim.dV1))
     text_base.append('\nestimated minimum required dV              = {:.3f} km/s'.format(sqrt(2*g_n*sim.alt[-1])/1000))
     return text_base
 
 # this creates a nice set of plots of our trajectory data and saves it to rocket_farm
 def rocket_plot(t, alt, v, a, F, q, Ma, m, p_a, D):
-    import matplotlib
-    import matplotlib.pyplot as plt
-    from matplotlib import rc
-    import pylab
-    
     pylab.rcParams['figure.figsize'] = (10.0, 10.0)
     fig, (ax1, ax2, ax3, ax4, ax5, ax6, ax7, ax8, ax9) = plt.subplots(9, sharex=True)
     
@@ -290,10 +302,6 @@ def rocket_plot(t, alt, v, a, F, q, Ma, m, p_a, D):
 
 # this creates some plots of the phase spaces of all our designs, doesn't save them
 def phase_plot(L, mdot, p_e):
-    import pylab
-    import matplotlib.pyplot as plt
-    from mpl_toolkits.mplot3d import Axes3D
-
     fig, (ax1, ax2, ax3) = plt.subplots(3, sharex=True)
     
     ax1.plot(L, p_e)
@@ -317,7 +325,7 @@ def phase_plot(L, mdot, p_e):
     
     fig2 = plt.figure()
     ax = fig2.add_subplot(111, projection='3d')
-    
+    ax.set_title('Design Space Trajectory')
     ax.plot(L, mdot, p_e)
     ax.set_xlabel("Length (m)")
     ax.set_ylabel("Mass flow rate (kg/s)")
@@ -326,7 +334,13 @@ def phase_plot(L, mdot, p_e):
     # we display the interactive 3d phase portrait
     plt.show()
     # note, we're choosing to not automatically save these, but they can be saved from the interface
-    
+    fig3 = plt.figure()
+    ax = fig3.add_subplot(111)
+    ax.plot(L/(L[-1]), "r", label="L")
+    ax.plot(mdot/(mdot[-1]), "g", label="Mdot")
+    ax.plot(p_e/(p_e[-1]), "b", label="p_e")
+    ax.legend()
+    plt.show()
 
 # Results, this is the big boi function
 if __name__ == '__main__': # Testing  
@@ -335,8 +349,8 @@ if __name__ == '__main__': # Testing
     
     # this block is for probing design space within reasonable bounds
     # these parameters were an experiment, idk which are appropriate yet
-    #res = differential_evolution(f, [(1.0, 1.7), (1.5, 3.0), (30, 60)], \
-                #strategy='best1exp', popsize=50, mutation=(.6,1.8), recombination=.1, polish=True,workers=-1, disp=True)
+    #res = differential_evolution(f, [(1.15, 1.45), (1.7, 3.0), (30, 60)], \
+    #            strategy='best1exp', popsize=80, mutation=.1, recombination=.25, polish=True,workers=-1, disp=True)
     #res=res.x
     
     print("Done!")
@@ -357,7 +371,7 @@ if __name__ == '__main__': # Testing
     print('\nMaking an OpenRocket rocket and corresponding engine!')
     
     # create an openrocket file with matching engine for our design (and print/save trajectory data)
-    openrkt.make_engine(mdot, sim.m_prop[0], dia, sim.F[0:sim.F_index], sim.t[sim.F_index-1], sim.Ve/g_n, res_text)
+    openrkt.make_engine(mdot, sim.m_prop[0], dia, sim.F[0:sim.F_index + 1], sim.t[sim.F_index], sim.Ve/g_n, res_text)
     
     # draw pretty pictures of optimized trajectory
     rocket_plot(sim.t, sim.alt, sim.v, sim.a, sim.F, sim.q, sim.Ma, sim.m, sim.p_a, sim.D)
@@ -368,3 +382,11 @@ if __name__ == '__main__': # Testing
         for j in range(0, len(designplot)):
             designplot[j].append(allvectors[i][j])
     phase_plot(designplot[0], designplot[1], designplot[2])
+
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+    ax.set_title('Objective + Constraint convergence')
+    ax.plot(allobjfun, "r", label="Objective Function Evaluations (Logorithmic Scale)")
+    ax.legend()
+    plt.show()
+    
