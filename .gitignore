@@ -59,4 +59,4 @@ target/
 # our stuff
 #*.rse
 #*.csv
-optimization/rocket_farm/
+rocket_farm/
