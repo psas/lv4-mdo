@@ -1,52 +1,53 @@
 
 OPTIMIZED DESIGN VECTOR
 -----------------------------
-x_initial_guess                            = 1.3, 2.1, 47.0
-initial guess GLOW                                    = 168.3 kg
-x_optimized                                = 1.2947871894548746, 2.436088829226528, 53.8173356270113
+x_initial_guess                            = 1.4, 2.1, 47.0
+initial guess GLOW                                    = 176.1 kg
+x_optimized                                = 1.29239438026, 2.44747959342, 49.2514489744
+design tankage length (before adjustment)  = 1.292 m
+design mass flow rate                      = 2.447 kg/s
+design nozzle exit pressure                = 49.251 kPa
+design tankage length (after adjustment)   = 1.562 m
 design airframe diameter                   = 12.000 in.
-design tankage length (before adjustment)  = 1.295 m
-design mass flow rate                      = 2.436 kg/s
-design nozzle exit pressure                = 53.817 kPa
-design tankage length (after adjustment)   = 1.565 m
-design GLOW                                = 167.895 kg
+design airframe total length               = 5.340 m.
+design GLOW                                = 167.709 kg
 
 CONSTRAINTS
 -----------------------------
-L/D ratio (c.f. < 18.0)                      = 17.529
-Sommerfield criterion (c.f. pe/pa >= 0.35)   = 0.628
-max acceleration (c.f. < 15.0)               = 7.396 gs
-TWR at lift off (c.f. > 2.0)                 = 2.644
-speed when leaving launch rail (c.f. > 22.0) = 29.325 m/s
-altitude at apogee (c.f. > 108.401)          = 108.589 km
+L/D ratio (c.f. < 18.0)                      = 17.519
+Sommerfield criterion (c.f. pe/pa >= 0.35)   = 0.575
+max acceleration (c.f. < 15.0)               = 7.474 gs
+TWR at lift off (c.f. > 2.0)                 = 2.650
+speed when leaving launch rail (c.f. > 22.0) = 29.373 m/s
+altitude at apogee (c.f. > 108.401)          = 108.608 km
 design thrust (ground level) (c.f. = 6.0)    = 6.000 kN
 
 ADDITIONAL INFORMATION
 -----------------------------
-design thrust (vacuum)                     = 7.04 kN
-design total dry mass                      = 74.106 kg
-design total propellant mass               = 93.789 kg
+design thrust (vacuum)                     = 7.12 kN
+design total dry mass                      = 74.093 kg
+design total propellant mass               = 93.616 kg
 altitude at engine ignition                = 1401.0 m
-mission time at apogee                     = 173.250 s
-mission time at burnout                    = 38.750 s
+mission time at apogee                     = 173.000 s
+mission time at burnout                    = 38.500 s
 design chamber pressure                    = 350.000 psi
-design expansion ratio                     = 7.488
-design throat area                         = 2.638 in.^2
-design isp                                 = 268.147 s
-design total impulse                       = 254.317 kN*s
-design dV                                  = 2.151 km/s
-estimated minimum required dV              = 1.459 km/s
+design expansion ratio                     = 8.028
+design throat area                         = 2.650 in.^2
+design isp                                 = 270.804 s
+design total impulse                       = 252.571 kN*s
+design dV                                  = 2.169 km/s
+estimated minimum required dV              = 1.460 km/s
 
 ENGINE SYSTEM DETAILS
 -----------------------------
-Ox flow: . . . . . . . . . .   1.377 kg/s
-Fuel flow:                     1.059 kg/s
-Ox mass: . . . . . . . . . . . 53.011 kg
-Fuel mass:                     40.778 kg
-Tank diameters: . . . . . . .   0.291 m
-Ox tank length + ullage:        0.769 m
-Fuel tank length + ullage:      0.795 m
+Ox flow: . . . . . . . . . .   1.383 kg/s
+Fuel flow:                     1.064 kg/s
+Ox mass: . . . . . . . . . . . 52.913 kg
+Fuel mass:                     40.703 kg
+Tank outer diameters: . . . . . . .   0.291 m
+Ox tank length + ullage:        0.768 m
+Fuel tank length + ullage:      0.794 m
 Ox tank thickness:            0.737 mm
 Fuel tank thickness:          0.444 mm
-Ox tank mass: . . . . . . . . 3.449 kg
-Fuel tank mass:               1.181 kg
+Ox tank mass: . . . . . . . . 3.444 kg
+Fuel tank mass:               1.180 kg
