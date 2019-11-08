@@ -1,0 +1,57 @@
+NOTE airframe fudge 100%, apogee slack 120%
+OPTIMIZED DESIGN VECTOR
+-----------------------------
+x_initial_guess                            = 145.0, 2.4, 55.0
+initial guess GLOW                         = 236.9 kg
+x_optimized                                = 111.49685243927337, 2.4640187005574363, 38.344617383105025
+design total propellant mass               = 111.497 kg
+design mass flow rate                      = 2.464 kg/s
+design nozzle exit pressure                = 38.345 kPa
+design tankage length (after adjustment)   = 2.162 m
+design airframe diameter                   = 12.000 in.
+design airframe total length               = 6.140 m.
+design GLOW                                = 200.116 kg
+
+CONSTRAINTS
+-----------------------------
+L/D ratio (c.f. < 30.0)                      = 19.111
+Sommerfield criterion (c.f. pe/pa >= 0.35)   = 0.448
+max acceleration (c.f. < 15.0)               = 6.719 gs
+TWR at lift off (c.f. > 2.0)                 = 2.020
+speed when leaving launch rail (c.f. > 22.0) = 27.548 m/s
+altitude at apogee (c.f. > 121.401)          = 121.401 km
+design thrust (ground level) (c.f. < 6.0)    = 5.923 kN
+
+ADDITIONAL INFORMATION
+-----------------------------
+design thrust (vacuum)                     = 7.32 kN
+design total dry mass                      = 88.619 kg
+altitude at engine ignition                = 1401.0 m
+mission time at apogee                     = 187.750 s
+mission time at burnout                    = 45.500 s
+max dynamic pressure                       = 79.499 kPa
+design chamber pressure                    = 2413.166 kPa
+design expansion ratio                     = 9.785
+design Exit area                           = 26.110 in.^2
+design throat area                         = 2.668 in.^2
+design Throat pressure                     = 1398.832 kPa
+design Throat temperature                  = 2968.862 K
+design Chamber temperature                  = 3153.080 K
+design isp                                 = 278.117 s
+design total impulse                       = 301.384 kN*s
+design dV                                  = 2.222 km/s
+estimated minimum required dV              = 1.543 km/s
+
+ENGINE SYSTEM DETAILS
+-----------------------------
+Ox flow: . . . . . . . . . .   1.393 kg/s
+Fuel flow:                     1.071 kg/s
+Ox mass: . . . . . . . . . . . 63.020 kg
+Fuel mass:                     48.477 kg
+Tank outer diameters: . . . . . . .   0.271 m
+Ox tank length + ullage:        1.066 m
+Fuel tank length + ullage:      1.097 m
+Ox tank thickness:            0.686 mm
+Fuel tank thickness:          0.413 mm
+Ox tank mass: . . . . . . . . 3.251 kg
+Fuel tank mass:               1.338 kg
