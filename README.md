@@ -1,6 +1,6 @@
 # Liquid Engine Analysis
 
-Back of the envelope calculations for liquid rocket engines.
+Current location for LV4 Optimization (MDO) algorithms and work.
 
 The archived LV4_Optimization white paper and notebook is essential reading for background info and conceptual explanation. My code follows directly from it and some other archived work.
 
