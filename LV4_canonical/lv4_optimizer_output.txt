@@ -3,7 +3,7 @@ DESIGN VECTOR
 -----------------------------
 design total propellant mass               = 144.589 kg
 design mass flow rate                      = 2.871 kg/s
-design nozzle exit pressure                = 74610.004 kPa
+design nozzle exit pressure                = 74610.004 Pa
 total tankage length (after adjustment)    = 2.198 m
 design airframe diameter                   = 0.321 in.
 design airframe total length               = 6.233 m.

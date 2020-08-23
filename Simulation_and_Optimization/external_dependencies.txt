@@ -1,0 +1,10 @@
+External Dependencies:
+pyHWM14 - Horizontal Wind Model 2014  - https://pypi.org/project/pyhwm2014/
+nrlmsise00 - Naval Research Labatory Mass Spectrometer Incoherent Scatter Radar Extended Model - https://pypi.org/project/nrlmsise00/
+numpy
+scipy
+matplotlib
+
+Inferior Options:
+hwm93 - Horizontal Wind Model 1993 - https://pypi.org/project/hwm93/
+msise00 - (too slow for us) - https://pypi.org/project/msise00/
