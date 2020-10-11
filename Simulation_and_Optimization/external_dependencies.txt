@@ -4,7 +4,3 @@ nrlmsise00 - Naval Research Labatory Mass Spectrometer Incoherent Scatter Radar 
 numpy
 scipy
 matplotlib
-
-Inferior Options:
-hwm93 - Horizontal Wind Model 1993 - https://pypi.org/project/hwm93/
-msise00 - (too slow for us) - https://pypi.org/project/msise00/
