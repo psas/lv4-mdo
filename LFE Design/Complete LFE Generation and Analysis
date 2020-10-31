@@ -1,0 +1,1113 @@
+# psas/liquid-engine-analysis
+# Parametric LFE Generation and Analysis.ipynb
+# 10/30/20
+
+
+
+
+# ********************
+# SECTION 1
+# ********************
+
+%matplotlib inline
+
+import math
+import sympy as sympy
+import matplotlib
+import numpy as np
+import matplotlib.pyplot as plt
+
+from mpmath import *
+
+from sympy.solvers import solve
+from sympy import Symbol
+from sympy import log
+import operator
+
+
+
+
+
+# ********************
+# SECTION 2
+# ********************
+
+#Define Constants
+g     = 32.2  # gravitational constant in ft/s^2
+J     = 778   # Energy conversion factor (ft-lb/Btu)
+Rgas  = 8.314 # Gas constant (J/mol/K) This is universal gas constant
+
+
+
+
+
+
+# ********************
+# SECTION 3
+# ********************
+
+#initial design considerations inputs
+#consider calculated exit pressure based on desired optimized altitude and then printing results by iterating
+#through various ambient pressures as a tool for designing flight engines.
+#-------------------------------------------------------------------------
+#also consider grouping all CEArun generated perameters together and dedicating a whole section to using the tool.
+
+# Use this variable to control whether you start with F or mdot
+start_with_thrust = True
+
+
+# Outputs from MDO:
+# Either set a target total thrust or a target mass flow rate
+F        = 495 #1580.887 # lbf
+mdot     = 0 #2.624 # design mass flow rate (kg/s)
+
+p_e      = 101 # 42.974 # design nozzle exit pressure (kPa)
+
+#CEARun:
+M        = 23.196    # Molecular Weight, (lb/lb-mol) or (g/mol)
+rw       = 1.3       # Weight mixture ratio, (oxidizer/fuel)
+rwfuel   = 64.8      # Fuel mixture percentage
+Tcns     = 5576.1  # Nozzle stagnation temperature, (deg R)
+Tt       = 5247.82      # Throat Temperature (deg R)
+gam      = 1.1251    # Specific heat ratio
+
+#Optimization Parameters:
+Pe       = p_e * 0.145 # convert from kPa to PSI
+Pinj     = 350       # Pressure at injector, Pinj (lb/in^2)
+
+#Atmospheric Parameters:
+Pa       = 14.7      # Ambient Pressure, (lbf/in^2)
+Tamb     = 536.67    # Ambient temperature, (deg R) [77 deg f and default in CEARUN]
+
+#Geometry Parameters:
+ARhb     = 11        # Cooling channel aspect ratio at throat
+Cd       = .88       # discharge coefficient - depends on geometry of injector
+epsilonc = 5         # Contraction ratio
+gammao   = 45        # desired injector angle for ox
+Lstar    = 40        # Characteristic Chamber Length, L* (in) ***Need to look up how this affects outputs***
+Ninj     = 20        # number of injector elements
+theta    = 45        # rapid contraction angle
+thetaN   = 45        # rapid expansion angle (double check these in huang, they may be backward) ***Double check anyway***
+
+#Fluid Properties:
+Bpf    = 640.37       # Boiling Point of Fuel, Bpf (deg R) ***Update for 70% IPA if HT matters***
+CpH20  = 0.998137     # Water specific heat
+CpFuel = 0.6401       # Specific heat of pure Fuel, CpFuel (BTU/lb-F) ***Is this IPA or Ethanol?***
+Hvapf  = 44000        # Fuel heat of vaporization, Hvapf (J/mol)
+nc     = 1.1          # Nucleate boiling factor of safety
+Pco    = 600          # Initial fuel pressure, Pco (lbf/in^2) ***Update if/when regenerative design is considered***
+Re     = 5800         #?? Desired channel Reynold's number
+Remin  = 2000         # Guess at minimum channel number for channels > 1
+muf    = 2.09 *10**-5 #?? Viscosity of the fuel mixture  ***Verify fuel viscosity***
+rhof   = 0.030682       # density of 70% ethanol (lbm per cubic inch) ***Evaluate equations with rho for units***
+rhoo   = 0.04122     # density of liquid ox (lbm per cubic inch)
+
+#film cooling estimate
+Acool =  0        
+Cpvc  =  0.582784  #btu/lb/f
+edac  =  .5       
+
+#Assumptions
+Pcinj    = Pinj                   #Chamber total pressure is equal to injector pressure
+Minj     = 0                      #Mach number at injector assumed to be zero
+R        = ((Rgas/M) / 9.81) * 1823 # weird Gas constant for the flow in ft/R
+Tci      = Tamb                   #Fuel holding temperature is equal to ambient temp
+Vinj     = 0                      #Injector velocity is zero
+
+#material properties
+
+# Typical values for various printable materials
+# Inconel 718
+# Aluminum (AlSi10Mg)
+# Cobalt Chrome
+# Titanium
+
+Props = [
+    #     a              E              k          Twg        v         RA, in
+    ["0.000008065" , "25450000" , "0.000225694" , "1700" , "0.274" , "0.00065"], # 0 Inconel
+    ["0.000014"    , "10200000" , "0.001716667" , "1200" , "0.33"  , "0.00059"], # 1 Aluminum, RA: 0.59-0.75 * 10**-3 in
+    ["0.0000069"   , "30000000" , "0.000333333" , "2563" , "0.29"  , "0.00039"], # 2 Cobalt Chrome
+    ["0.000032724" , "16100000" , "0.000111667" , "3479" , "0.31"  , "0.00065"]  # 3 Titanium
+        ]
+MatInd = 0 # Material index
+
+a   = float( Props[MatInd][0] ) # Thermal expansion ratio nozzle material
+E   = float( Props[MatInd][1] ) # Elastic modulus of nozzle material, E (psi)
+k   = float( Props[MatInd][2] ) # Wall thermal conductivity, k (Btu-in/in^2-s-F)
+Twg = float( Props[MatInd][3] ) # Maximum Material Temperature at wall, (deg R)
+v   = float( Props[MatInd][4] ) # Poisson's ratio nozzle material
+RA  = float( Props[MatInd][5] ) # Surface Rougness, (inch RA)
+
+#### this should be a desired percentage of chamber pressure
+DelPi   = 70   # Injector pressure drop, DelPi (lbf/in^2) ***Update when using regnerative designs***
+
+# Correction Factors
+eta     = float( 0.90 )  # Combustion efficiency
+edafilm = float( 1    )  # Correction factor from film cooling for Taw (1 = NO FILM COOLING)
+
+
+
+
+
+
+# ********************
+# SECTION 4
+# ********************
+
+#Iterative process to find mach number at the inlet.
+#equation 1-23, huang
+Mi_guess = .3 # a reasonable guess for mach number at inlet
+
+def inlet_mach(guess):
+    estimate = math.sqrt(
+                         (2 * (1 + guess*(gam-1)/2)
+                            / (gam+1)
+                         ) ** ((gam+1)/(gam-1))
+                        ) / epsilonc
+    
+    if abs(estimate - guess) < 0.0001:
+        return estimate
+    else:
+        return inlet_mach(estimate)
+    
+Mi = inlet_mach(Mi_guess)
+
+
+
+
+
+
+
+
+
+
+
+
+
+# ********************
+# SECTION 5
+# ********************
+
+# Pressures
+Pcns     = Pcinj*(1+((gam-1)/2)*Mi**2)**(gam/(gam-1))/(1+gam*Mi**2)         #Nozzle stagnation pressure (1-14, huang)
+Pi       = Pinj/(1+gam*Mi**2)                                               #Pressure at inlet          (1-15, huang)
+Pt       = Pcns*(2/(gam+1))**(gam/(gam-1))                                  #Pressure at throat         (1-21, huang)
+
+# Velocities
+Ve       = math.sqrt(((2*g*gam)/(gam-1))*R*Tcns*(1-(Pe/Pi)**((gam-1)/gam))) #Velocity at exit           (1-18, huang)
+Vt       = math.sqrt(((2*g*gam)/(gam+1))*R*Tcns)                            #Velocity at throat         (1-22, huang)
+
+temp_var = math.sqrt(R*Tcns/ (g*gam* (2/(gam+1))**((gam+1)/(gam-1)))) / Pcns
+epsilon  = (2/(gam+1))**(1/(gam-1)) * (Pcns/Pe)**(1/gam) / math.sqrt((gam+1)/
+                        (gam-1)*(1-(Pe/Pcns)**(((gam-1)/gam))))              #Expansion ratio            (1-20, huang)
+
+# Weight Flow Rates
+if start_with_thrust:
+    wdot = F / ((Pe - Pa)*epsilon*temp_var + Ve / g)                                     #Propellant flow rate       (1-6,  huang)
+else:
+    wdot = mdot * 9.81 * 0.2248 # (kg/s * m/s^2) * (lbf/s)/(N/s)   #Propellant flow rate
+wdotf    = 1/(1+rw)*wdot                                                    #Fuel mass flow rate
+wdoto    = wdot-wdotf                                                       #Ox mass flow rate
+
+# Temperatures
+Tt       = Tcns*(Pt/Pcns)**((gam-1)/gam)                                    #Temperature at throat      (1-13, huang)
+Ti       = Tcns/(1+.5*(gam-1)*Mi**2)                                        #Inlet temperature          (Tab. 1-1, huang)
+Te       = Ti/(Pi/Pe)**((gam-1)/gam)                                        #Temperature at exit        (1-13, huang)
+
+# Geometry
+#Volume_t  = R*Tt/144/Pt                                                      #Gas volume at throat       (1-9,  huang)
+#At2       = 144*wdot*Volume_t/Vt                                              #Area of throat             (1-11, huang)
+# remarkably, the equation for At2 gives the same result as the theoretical equation for At
+# so it doesn't really matter which we use
+
+At       = wdot * temp_var
+Wdot     = At*Pcns*math.sqrt(g*gam*(2/(gam+1))**((gam+1)/(gam-1))/R/Tcns)   #Theoretical weight flow    (1-19, huang)
+
+Ae       = At*epsilon                                                       #Area of exit               (1-20, huang)
+c        = Ve+Ae*(Pe-Pa)*(g/wdot)                                           #Effective exhaust velocity (1-8,  huang)
+
+thetaNr = math.pi/180*thetaN #rapid expansion angle in radians
+thetar  = math.pi/180*theta #rapid contraction angle in radians
+
+# Bottom up Calcs
+if not start_with_thrust:
+    F = wdot*Ve/g + (Pe - Pa)*Ae # calculate thrust in lbf
+
+
+
+
+
+
+
+# ********************
+# SECTION 6
+# ********************
+
+#Performance Parameters
+
+Is    = F/wdot                                                      #Specific Impulse                (1-28,  huang)
+Istc  = c/g                                                         #Thrust chamber specific impulse (1-31a, huang)
+cstar = (math.sqrt(g*gam*R*Tcns)/gam
+             /math.sqrt((2/(gam+1))**((gam+1)/(gam-1))))            #Characteristic Velocity         (1-32a, huang)
+Cf    = (math.sqrt(2*gam**2/(gam-1)*(2/(gam+1))**((gam+1)/(gam-1))
+             *(1-(Pe/Pcns)**((gam-1)/gam)))+epsilon*((Pe-Pa)/Pcns)) #Thrust Coefficient              (1-33a, huang)
+
+
+
+
+# ********************
+# SECTION 7
+# ********************
+
+#Thrust Chamber Layout
+
+Vc = Lstar*At    #Chamber volume (4-4, huang)
+Ac = epsilonc*At #Chamber cross sectional area (fig. 4-11, huang)
+#Lc = Lstar/Ac    #does not account for the converging part of combustion chamber use 4-5, huang instead
+Lc = (Lstar - 1/3 * math.sqrt(At/math.pi)/math.tan(thetar) *
+      (epsilonc**(1/3) - 1)) / epsilonc # equation 4-5 from huang
+
+
+
+
+
+
+# ********************
+# SECTION 8
+# ********************
+
+#Heat Transfer
+
+Cplc   = rwfuel/100*CpFuel+(1-rwfuel/100)*CpH20                   #Coolant specific heat
+Pr     = 4*gam/(9*gam-5)                                          #Prandtl number
+mucc   = (46.6*10**-10)*M**0.5*Tcns                               #Viscosity in the combustion chamber
+mut    = (46.6*10**-10)*M**0.5*Tt                                 #Viscosity in the throat
+rlam   = Pr**0.5                                                  #Laminar flow local recovery factor
+rturb  = Pr**0.33                                                 #Turbulent flow local recovery factor
+Reffcc = ((1+rturb*((gam-1)/2)*Mi**2)/(1+((gam-1)/2)*Mi**2))
+Refft  = ((1+rturb*((gam-1)/2))/(1+((gam-1)/2)))
+Tawi   = edafilm*Tcns*Reffcc                                      #Adiabatic wall temperature at inlet
+Tawt   = edafilm*Tcns*Refft                                       #Adiabatic wall temperature at throat
+Tcc    = 9/5*(math.log(Pa/(Pi+DelPi))*Rgas/Hvapf+1/(Bpf*5/9))**-1 #Critical temperature of fuel coolant
+Twc    = Tcc/nc                                                   #Maximum coolant wall temperature
+Cpg    = gam*R/(gam-1)/J                                          #Specific heat at constant pressure
+rt     = math.sqrt(At/math.pi)                                    #Radius of throat
+re     = math.sqrt(Ae/math.pi)                                    #Radius of exit
+rmean  = rt*(1.5+.382)/2                                          #Mean throat curvature
+sigmat = (1/((.5*Twg/Tcns*(1+(gam-1)/2)+.5)**0.68                 #Correction factor for property variations across BL
+             *(1+(gam+1)/2)**0.12))                               #specified at throat
+sigmai = (1/((.5*Twg/Tcns*(1+(gam-1)/2*Mi**2)+.5)**0.68           #Correction factor for property variations across BL
+             *(1+(gam+1)/2*Mi**2)**0.12))                         #specified at inlet
+hg     = ((0.026/(2*rt)**0.2*(mucc**0.2*Cpg/Pr**0.6)
+           *(Pcns*g/cstar)**0.8*(2*rt/rmean)**0.1)*sigmat)        #heat transfer coefficient at throat
+
+
+Gc    = (hg/Cpvc/edac)/math.log((Tawt-Twc)/(Tawt-Twg)) #film cooling
+
+
+q     = hg*(Tawt-Twg)                   #required heat flux
+Tbulk = (Twc + Tci)/2                   #Coolant bulk temp
+t     = k/q*(Twg-Twc)                   #Calculated Wall thickness for desired coolant wall temp
+Qc    = (wdotf+Gc*Acool)*Cplc*(Twc-Tci) #Coolant capacity
+hc    = q/(Twc-Tbulk)                   #Coolant side heat transfer coefficient
+H     = 1/(1/hg+t/k+1/hc)               #Overall heat transfer coefficient
+
+
+
+
+
+# ********************
+# SECTION 9
+# ********************
+
+
+#solve for minimum number of cooling channels to acheive appropriate cross sectional area,
+#and the appropriate channel aspect ratio
+def count_channels(guess, Re_num):
+    bt    = (2*(rt+t)*math.pi/guess - t)
+    d     = 2 * ARhb * bt**2 / (ARhb+1) / bt 
+    Vco   = Re_num / rhof / d * muf                 #Velocity for chosen Reynold's Number
+    A_u   = (wdotf+Gc*Acool) / rhof / Vco     #unobstructed cross sectional area
+
+    #find min number of channels for ideal ratio
+    L = Symbol('L')
+    estimate = round(solve(L*t+(A_u*L/ARhb)**0.5-(2*rt+2*t)*math.pi,L)[0])
+    if abs(guess - estimate) < 1:
+        return guess
+    else:
+        return count_channels(max(estimate,1), Re_num)
+
+def find_reynolds(guess):
+    n = count_channels(1, guess)
+    if n > 1:
+        return guess, n
+    else:
+        return find_reynolds(guess + 50)
+
+Re_est, n = find_reynolds(Remin)    
+
+# I don't understand what this conditional is for! Don't we always want Re = Re_est?
+if Re < Re_est:
+    Re = Re_est
+#Re = Re_est
+
+#cooling channel geometry
+bt    = (2*(rt+t)*math.pi/n - t)         #base width at throat
+be     = (2*re+t)*math.pi/n-t              #base width at exit
+rccht  = bt/2                              #cooling channel effective radius at throat
+rcche  = be/2                              #cooling channel effective radius at nozzle exit
+d      = 2*ARhb*bt**2/(ARhb+1)/bt          #cooling channel hydraulic diameter
+Vco    = Re/rhof/d*muf                    #velocity for chosen Reynold's Number
+A_u    = (wdotf+Gc*Acool)/rhof/Vco        #unobstructed cross sectional area
+A_ob   = n*(bt**2*(1-math.pi/4)+ARhb*bt*t) #total obstructed area
+A_c    = A_u + A_ob                        #Total area for cooling channels to be used in parametric equations
+
+#friction factor
+# note, my change to a recursive function gives a result that differs after the 12th decimal place
+def friction(guess):
+    estimate = (2*math.log10(RA / 3.71 / d + 2.51 / Re / guess**0.5)
+               )**(-2)
+    estimate = (estimate + guess) / 2
+    
+    if abs(guess - estimate) < 0.000000001:
+        return estimate
+    else:
+        return friction(estimate)
+
+if Re > 4000:
+    f = friction(0.2) # starts with reasonable guess
+else:
+    f = 64/Re
+
+#calculate pressure drop of a cooling channel
+#to do this we must:
+#calculate arc length of parametric equations (or use solidworks for now...)
+#calculate reynolds number of passage
+#calculate friction factor for the pipe use solver of darcy FF
+#use this to determine holding tank pressure
+
+
+
+
+# ********************
+# SECTION 10
+# ********************
+
+#wall stresses
+
+Ste    =(Pco-Pe)*rcche/t+E*a*q*t/2/(1-v)/k #combined tangential stress at nozzle exit
+Stt    =(Pco-Pt)*rccht/t+E*a*q*t/2/(1-v)/k
+Sce    =(Pco-Pe)*re/t+E*a*q*t/2/(1-v)/k    #maximum compressive stress as coaxial shell design
+
+
+
+
+# ********************
+# SECTION 11
+# ********************
+
+#heat transfer plots
+#this needs to be revisited to ensure adjustments are being made for film cooling, the temperature doesnt seem to be graphing quite correctly
+
+x = np.linspace(Tbulk,Twg)
+
+#figure 1 Max stress v. Gas side wall temp
+plt.figure(1)
+line, = plt.plot(x,(Pco-Pt)*rccht/(k/((((0.026/(2*rt)**0.2*(mucc**0.2*Cpg/Pr**0.6)*(Pcns*g/cstar)**0.8*(2*rt/rmean)**0.1)*((1/((.5*x/Tcns*(1+(gam-1)/2)+.5)**0.68*(1+(gam+1)/2)**0.12)))))*(Tawt-x))*(x-Tcc))+E*a*q*(k/((((0.026/(2*rt)**0.2*(mucc**0.2*Cpg/Pr**0.6)*(Pcns*g/cstar)**0.8*(2*rt/rmean)**0.1)*((1/((.5*x/Tcns*(1+(gam-1)/2)+.5)**0.68*(1+(gam+1)/2)**0.12)))))*(Tawt-x))*(x-Tcc))/2/(1-v)/k, '--', linewidth=2)
+plt.suptitle("Figure 1")
+plt.title("Max stress v. Gas-side wall temp")
+plt.xlabel("Temp (R)")
+plt.ylabel("Stress (psi)")
+plt.ylim([0,30000])
+plt.xlim([Twc,Twg])
+
+#figure 2 Wall thickness v. gas side wall temp
+plt.figure(2)
+line, = plt.plot(x,k/((((0.026/(2*rt)**0.2*(mucc**0.2*Cpg/Pr**0.6)*(Pcns*g/cstar)**0.8*(2*rt/rmean)**0.1)*((1/((.5*x/Tcns*(1+(gam-1)/2)+.5)**0.68*(1+(gam+1)/2)**0.12)))))*(Tawt-x))*(x-Tcc), '--', linewidth=2)
+plt.suptitle("Figure 2")
+plt.title("Wall thickness v. Gas-side wall temp")
+plt.xlabel("Temp (R)")
+plt.ylabel("Thickness (in)")
+plt.ylim([0,0.020])
+plt.xlim([Twc,Twg])
+
+
+
+# ********************
+# SECTION 12
+# ********************
+
+rcc = math.sqrt((At*epsilonc)/math.pi)
+#Parametric Equations
+
+#calculate parameters
+tout   = 2*t # calculate a better outer thickness or place in input parameters
+
+# Calculated constants:
+A3 = 1.382*rt
+A4 = 0.382*rt
+
+A1 = 1/math.tan(thetaNr) / (2*(rt - A4*(1 - math.cos(thetaNr))))
+X1 = A3 - A4*math.cos(thetaNr)
+A2 = A1*(rt + A4*(1 - math.cos(thetaNr)))**2 - A4*math.sin(thetaNr)
+Rbell = t
+
+A5 = 2.5*rt
+A6 = -1.5*rt
+
+p1 = A5 + A6*math.cos(thetar)
+p2 = rcc + A6*(1 - math.cos(thetar))
+
+A20 = math.tan(thetar)
+A7  = -1/A20
+A17 = -A7 * p1
+A8  = A17 + A6*math.sin(thetar)
+A9  = -A6
+A10 = A9
+A11 = A7 * (rcc - rt*(4 - 3*math.cos(thetar))) - 3*rt*math.sin(thetar)
+A12 = 1/(4*A1**2)
+A13 = math.cos(thetar)*t
+A14 = math.sin(thetar)*t
+A15 = A_c / math.pi
+A16 = math.cos(thetar)*A15
+A18 = A6 * math.sin(thetar)
+A19 = A15 * math.cos(thetar)
+A21 = math.cos(thetar)*tout
+A22 = math.sin(thetar)*tout
+
+
+
+
+# ********************
+# SECTION 13
+# ********************
+
+print("---------------------")
+print("Parametric Equations:")
+print("---------------------\n")
+
+#Print internal contour equations
+print("-----------------")
+print("Internal Contour:")
+print("-----------------\n")
+print("Bell")
+print("x(t):")
+print(" t")
+print("y(t):")
+print(" %f * t^2 - %f" % (A1,A2) )
+print("Parameters:" )
+print("t1:")
+print(" %f" % X1 )
+print("t2:")
+print(" %f\n" % (re-0.0001) )
+
+print("Throat, rapid expansion")
+print("x(t):")
+print(" %f * (1- (.382/1.382) * cos(t*3.14159/180))" % A3 )
+print("y(t):")
+print(" %f * sin(t*3.14159/180)" % A4 )
+print("Parameters:" )
+print("t1:")
+print(" 0.001" )
+print("t2:")
+print(" %f\n" % (thetaN-0.001) )
+
+print("Throat, rapid contraction")
+print("x(t):")
+print(" %f * (1 - 0.6 * cos(t*3.14159/180))" % A5 )
+print("y(t):")
+print(" %f * sin(t*3.14159/180)" % A6 )
+print("Parameters:" )
+print("t1:")
+print(" 0.001" )
+print("t2:")
+print(" %f\n" % (theta-0.001) )
+
+print("Linear contraction")
+print("x(t):")
+print(" t")
+print("y(t):")
+print(" %f * t + %f" % (A7,A8))
+print("Parameters:" )
+print("t1:")
+print(" %f" % (p1+0.0001) )
+print("t2:")
+print(" %f\n" % (p2-0.0001) )
+
+print("Inlet")
+print("x(t):")
+print(" %f - %f * (1 - cos(t*3.14159/180))" % (rcc,A9))
+print("y(t):")
+print(" %f * sin(t*3.14159/180) + %f" % (A10,A11))
+print("Parameters:")
+print("t1:")
+print(" 0.001" )
+print("t2:")
+print(" %f\n" % (theta-0.0001) )
+
+#Print inner cooling channel wall equations
+print("-----------------------")
+print("Cooling Channel, inner:" )
+print("-----------------------\n")
+print("Bell")
+print("x(t):")
+print(" t + ( %f * t / ( t^2 + %f )^0.5)" % (t,A12))
+print("y(t):")
+print(" %f *t^2 - %f + ( %f / ( %f *( t^2 + %f )^0.5))" % (A1,A2,-t,2*A1,A12))
+print("Parameters:")
+print("t1:")
+print(" %f" % (X1+0.0001) )
+print("t2:")
+print(" %f\n" % (re-0.0001) )
+
+print("Rapid Expansion")
+print("x(t):")
+print(" %f * (1- (.382/1.382) * cos(t*3.14159/180)) + ( %f * cos(t*3.14159/180))" % (A3,t) )
+print("y(t):")
+print(" %f * sin(t*3.14159/180) + (%f *sin(t*3.14159/180))" % (A4,-t) )
+print("Parameters:" )
+print("t1:")
+print(" 0.001" )
+print("t2:")
+print(" %f\n" % (thetaN-0.001) )
+
+print("Rapid Contraction")
+print("x(t):")
+print(" %f * (1 - 0.6 * cos(t*3.14159/180)) + ( %f * cos(t*3.14159/180))" % (A5,t) )
+print("y(t):")
+print(" %f * sin(t*3.14159/180) + (%f *sin(t*3.14159/180))" % (A6,t) )
+print("Parameters:" )
+print("t1:")
+print(" 0.001" )
+print("t2:")
+print(" %f\n" % (theta-0.001) )
+
+print("Linear contraction")
+print("x(t):")
+print(" t + %f" % A13)
+print("y(t):")
+print(" %f * t + %f" % (A7,A8+A14))
+print("Parameters:" )
+print("t1:")
+print(" %f" % (p1+0.0001) )
+print("t2:")
+print(" %f\n" % (p2-0.0001) )
+
+print("Inlet")
+print("x(t):")
+print(" %f - %f * (1 - cos(t*3.14159/180)) + ( %f * cos(t*3.14159/180))" % (rcc,A9,t))
+print("y(t):")
+print(" %f * sin(t*3.14159/180) + %f + (%f *sin(t*3.14159/180))" % (A10,A11,t))
+print("Parameters:")
+print("t1:")
+print(" 0.001" )
+print("t2:")
+print(" %f\n" % (theta-0.0001) )
+
+#Print outter cooling channel wall equations
+print("-----------------------")
+print("Cooling Channel, outer:" )
+print("-----------------------\n")
+
+print("Bell")
+print("x(t):")
+print(" t + ( %f * t / ( t^2 + %f )^0.5) + ( t / ( t^2 + %f )^0.5) * ( -t + (t^2 + %f * sin(2*3.14159 - arctan(%f*t)))^(.5)) / (sin(2*3.14159-arctan(%f*t)))" % (t,A12,A12,A15,-2*A1,-2*A1))
+print("y(t):")
+print(" %f *t^2 - %f + ( %f / ( %f *( t^2 + %f )^0.5)) + ( 1 / ( %f * (t^2+ %f )^0.5)) * ( -t + ( t^2 + %f * sin(2*3.14159-arctan(%f*t)))^0.5) / ( sin(2*3.14159 - arctan(%f*t)))" % (A1,A2,-t,2*A1,A12,-2*A1,A12,A15,-2*A1,-2*A1))
+print("Parameters:")
+print("t1:")
+print(" %f" % (X1+0.0001) )
+print("t2:")
+print(" %f\n" % (re-0.0001) )
+
+print("Rapid Expansion")
+print("x(t):")
+print(" %f * (1- (.382/1.382) * cos(t*3.14159/180)) + ( %f * cos(t*3.14159/180)) + ( -( %f * ( 1 - (0.382)/(1.382) * cos(t*3.14159/180) ) ) + (( %f * (1 - (0.382)/(1.382) * cos(t*3.14159/180) ))^2 + %f * cos(t*3.14159/180))^0.5)" % (A3,t,A3,A3,A15)     )
+print("y(t):")
+print(" %f * sin(t*3.14159/180) + (%f *sin(t*3.14159/180)) + ( -( %f * ( 1 - (0.382)/(1.382) * cos(t*3.14159/180) ) ) + ( (%f * ( 1 - (0.382)/(1.382) * cos(t*3.14159/180) ) )^2 + %f * cos(t*3.14159/180) )^0.5 ) * ( -tan(t*3.14159/180) )" % (A4,-t,A3,A3,A15)     )
+print("Parameters:" )
+print("t1:")
+print(" 0.001" )
+print("t2:")
+print(" %f\n" % (thetaN-0.001) )
+
+print("Rapid Contraction")
+print("x(t):")
+print(" %f * (1 - 0.6 * cos(t*3.14159/180)) + ( %f * cos(t*3.14159/180)) + ( -( %f * ( 1 - 0.6 * cos(t*3.14159/180) ) ) + ( ( %f * ( 1 - 0.6 * cos(t*3.14159/180) ) )^2 + ( %f ) * cos(t*3.14159/180) )^0.5 )" % (A5,t,A5,A5,A15)     )
+print("y(t):")
+print(" %f * sin(t*3.14159/180) + (%f *sin(t*3.14159/180)) + ( -( %f * ( 1 - 0.6 * cos(t*3.14159/180) ) ) + ( ( %f * ( 1 - 0.6 * cos(t*3.14159/180) ) )^2 + %f * cos(t*3.14159/180) )^0.5 ) * ( tan(t*3.14159/180) )"             % (A6,t,A5,A5,A15)     )
+print("Parameters:" )
+print("t1:")
+print(" 0.001" )
+print("t2:")
+print(" %f\n" % (theta-0.001) )
+
+print("Linear contraction")
+print("x(t):")
+print(" t + %f + ( -t + ( t^2 + %f )^0.5 )" % (A13,A16))
+print("y(t):")
+print(" %f *t + %f + %f + ( -t + ( t^2 + %f )^0.5 ) * ( %f ) + ( %f )" % (A7,A17,A18,A19,A20,A14))
+print("Parameters:" )
+print("t1:")
+print(" %f" % (p1+0.0001) )
+print("t2:")
+print(" %f\n" % (p2-0.0001) )
+
+print("Inlet")
+print("x(t):")
+print(" %f - %f * (1 - cos(t*3.14159/180)) + ( %f * cos(t*3.14159/180)) + ( -( %f - %f * ( 1 - cos(t*3.14159/180) ) ) + ( ( %f - %f * ( 1 - cos(t*3.14159/180)))^2 + %f * cos(t*3.14159/180) )^0.5 )" % (rcc,A9,t,rcc,A9,rcc,A9,A15))
+print("y(t):")
+print(" %f * sin(t*3.14159/180) + %f + ( %f * sin(t*3.14159/180) ) + ( -( %f - %f * ( 1 - cos(t*3.14159/180) ) ) + ( ( %f - %f * ( 1 - cos(t*3.14159/180) ) )^2 + %f * cos(t*3.14159/180) )^0.5 ) * tan(t*3.14159/180)" % (A10,A11,t,rcc,A10,rcc,A10,A15))
+print("Parameters:")
+print("t1:")
+print(" 0.001" )
+print("t2:")
+print(" %f\n" % (theta-0.0001) )
+
+
+#print outter nozzle surface equations
+print("----------------------")
+print("Nozzle surface, outer:" )
+print("----------------------\n")
+
+print("Bell")
+print("x(t):")
+print(" t + ( %f * t / ( t^2 + %f )^0.5 ) + ( t / ( t^2 + %f )^0.5 ) * ( -t + ( t^2 + %f * sin(2*3.14159 - arctan(%f*t)) )^0.5 ) / ( sin(2*3.14159 - arctan(%f*t)) ) + ( %f * t / ( t^2 + %f )^0.5 )" % (t,A12,A12,A15,-2*A1,-2*A1,tout,A12))
+print("y(t):")
+print(" %f *t^2 - %f + ( %f / ( %f *( t^2 + %f )^0.5)) + ( 1 / ( %f * ( t^2+ %f )^0.5 ) ) * ( -t + ( t^2 + %f * sin(2*3.14159 - arctan(%f*t)) )^0.5 ) / ( sin(2*3.14159 - arctan(%f*t)) ) + ( %f / ( %f * ( t^2 + %f )^0.5 ) )" % (A1,A2,-t,2*A1,A12,-2*A1,A12,A15,-2*A1,-2*A1,-tout,2*A1,A12))
+print("Parameters:")
+print("t1:")
+print(" %f" % (X1+0.0001) )
+print("t2:")
+print(" %f\n" % (re-0.0001) )
+
+print("Rapid Expansion")
+print("x(t):")
+print(" %f * ( 1- (.382/1.382) * cos(t*3.14159/180) ) + ( %f * cos(t*3.14159/180) ) + ( -( %f * ( 1 - (0.382)/(1.382) * cos(t*3.14159/180) ) ) + ( ( %f * ( 1 - (0.382)/(1.382) * cos(t*3.14159/180) ) )^2 + %f * cos(t*3.14159/180) )^0.5 ) + ( %f * cos(t*3.14159/180) )" % (A3,t,A3,A3,A15,tout)     )
+print("y(t):")
+print(" %f * sin(t*3.14159/180) + ( %f *sin(t*3.14159/180) ) + ( -( %f * ( 1 - (0.382)/(1.382) * cos(t*3.14159/180) ) ) + ( ( %f * ( 1 - (0.382)/(1.382) * cos(t*3.14159/180) ) )^2 + %f * cos(t*3.14159/180) )^0.5 ) * ( -tan(t*3.14159/180) ) + ( %f * sin(t*3.14159/180) )" % (A4,-t,A3,A3,A15,-tout)     )
+print("Parameters:" )
+print("t1:")
+print(" 0.001" )
+print("t2:")
+print(" %f\n" % (thetaN-0.001) )
+
+print("Rapid Contraction")
+print("x(t):")
+print(" %f * ( 1 - 0.6 * cos(t*3.14159/180) ) + ( %f * cos(t*3.14159/180) ) + ( -( %f * ( 1 - 0.6 * cos(t*3.14159/180) ) ) + ( ( %f * ( 1 - 0.6 * cos(t*3.14159/180) ) )^2 + ( %f ) * cos(t*3.14159/180) )^0.5 ) + ( %f * cos(t*3.14159/180) )" % (A5,t,A5,A5,A15,tout)     )
+print("y(t):")
+print(" %f * sin(t*3.14159/180) + ( %f *sin(t*3.14159/180) ) + ( -( %f * ( 1 - 0.6 * cos(t*3.14159/180) ) ) + ( ( %f * ( 1 - 0.6 * cos(t*3.14159/180) ) )^2 + %f * cos(t*3.14159/180) )^0.5 ) * ( tan(t*3.14159/180) ) + ( %f *sin(t*3.14159/180) )"             % (A6,t,A5,A5,A15,tout)     )
+print("Parameters:" )
+print("t1:")
+print(" 0.001" )
+print("t2:")
+print(" %f\n" % (theta-0.001) )
+
+print("Linear contraction")
+print("x(t):")
+print(" t + %f + ( -t + ( t^2 + %f )^0.5 ) + %f" % (A13,A16,A21))
+print("y(t):")
+print(" %f *t + %f + %f + ( -t + ( t^2 + %f )^0.5 ) * ( %f ) + ( %f ) + ( %f )" % (A7,A17,A18,A19,A20,A14,A22))
+print("Parameters:" )
+print("t1:")
+print(" %f" % (p1+0.0001) )
+print("t2:")
+print(" %f\n" % (p2-0.0001) )
+
+print("Inlet")
+print("x(t):")
+print(" %f - %f * (1 - cos(t*3.14159/180) ) + ( %f * cos(t*3.14159/180) ) + ( -( %f - %f * ( 1 - cos(t*3.14159/180) ) ) + ( ( %f - %f * ( 1 - cos(t*3.14159/180) ) )^2 + %f * cos(t*3.14159/180) )^0.5 ) + ( %f * cos(t*3.14159/180) )" % (rcc,A9,t,rcc,A9,rcc,A9,A15,tout))
+print("y(t):")
+print(" %f * sin(t*3.14159/180) + %f + ( %f * sin(t*3.14159/180) ) + ( -( %f - %f * ( 1 - cos(t*3.14159/180) ) ) + ( ( %f - %f * ( 1 - cos(t*3.14159/180) ) )^2 + %f * cos(t*3.14159/180) )^0.5 ) * tan(t*3.14159/180) + ( %f * sin(t*3.14159/180) )" % (A10,A11,t,rcc,A10,rcc,A10,A15,tout))
+print("Parameters:")
+print("t1:")
+print(" 0.001"  )
+print("t2:")
+print(" %f\n" % (theta-0.0001) )
+
+
+
+
+# ********************
+# SECTION 14
+# ********************
+
+
+#Populate properties along the full length of nozzle, piecewise
+x  = [0] # x position array
+dx = 0.01 # change in x position
+
+# need these values for rx in a couple logic blocks
+yr = Symbol("yr")
+m = A20
+b = A5 + A6*math.cos(thetar) - m*(A1*re**2 - A2 + A9*math.sin(thetar))
+xcenter = A1*re**2 - (A2 + A11)
+ycenter = rcc + A6
+
+#intialize arrays for properies
+ARatioSub = [] #subsonic area ratio for lookup matrix
+ARatioSup = [] #supersonic area ratio for lookup matrix
+rx        = [] #radius
+Ax        = [] #area
+AR        = [] #actual area ratio of nozzle
+Px        = [] #pressure
+Tx        = [] #temperature
+Vx        = [] #velocity
+ax        = [] #local sonic velocity
+Mx        = [] #local mach number
+sigmax    = [] #local correction factor for property variations across boundary layer
+hgx       = [] #local gas side heat transfer coefficient
+Tawx      = [] #local adiabadic wall temperature of gas
+qx        = [] #heat flux through chamber wall
+
+res     = 1000 # resolution of mach lookup matrix
+
+MachSub = np.linspace(1/res,1,num=res)
+MachSup = np.linspace(1+1/res,10,num=res*9)
+
+#build AR matricies
+for Machx in MachSub:
+    ARatioSub.append(1/Machx*(((1+((gam-1)/2)*Machx**2)/(1+((gam-1)/2)))**((gam+1)/(gam-1)))**0.5)
+
+for Machx in MachSup:
+    ARatioSup.append(1/Machx*(((1+((gam-1)/2)*Machx**2)/(1+((gam-1)/2)))**((gam+1)/(gam-1)))**0.5)
+
+# match mach number to current area ratio
+# Ax[i]/At -> eps_x
+# ARatioSup or Sub -> ratio_list
+# < or > -> relation
+def get_currentAR(eps_x, ratio_list, relation):
+    for j, ratio in enumerate(ratio_list):
+        if not relation(ratio, eps_x):
+            return ratio, j
+
+# i think the sequential logic in this block looks sketchy
+# think harder about whether i-th elements should reference other i-th elements or (i-1)-th elements instead
+for i in range(math.ceil(((A1*re**2 - (A2 + A11)) / dx))):
+    # there is a supersonic regime during expansion and subsonic regime during compression
+    if x[i] < (A1*re**2 - A1*X1**2) + A4*sin(thetaNr):
+        macharray = MachSup
+        ratioarray = ARatioSup
+        relation = operator.lt
+    elif x[i] < A1*re**2 - (A2 + A11):
+        macharray = MachSub
+        ratioarray = ARatioSub
+        relation = operator.gt
+           
+    # radius depends on axial position along nozzle
+    # unsolved mystery: how do we know which solution to each quadratic is appropriate one?
+    # expansion
+    if x[i] < A1*re**2 - A1*X1**2:
+        rx.append(((A1*re**2 - x[i]) / A1)**.5)
+    # throat
+    elif x[i] < A1*re**2 - A1*X1**2 + A4*sin(thetaNr):
+        rx.append(solve((x[i] - (A1*re**2 - A2))**2 + (yr - A3)**2 - A4**2, yr)[0])
+    # compression
+    elif x[i] < A1*re**2 - A1*X1**2 + A4*sin(thetaNr) + A9*sin(thetar):
+        rx.append(solve((x[i] - (A1*re**2 - A2))**2 + (yr - A5)**2 - A9**2, yr)[0])
+    # chamber
+    elif x[i] < A1*re**2 - (A7*p2 + A2 + A8):
+        rx.append(m*x[i] + b)
+    # near injector
+    elif x[i] < A1*re**2 - (A2 + A11):
+        rx.append(solve((x[i] - xcenter)**2 + (yr - ycenter)**2 - A9**2, yr)[1])
+    
+    x.append(x[i] + dx) # recall that this is one index ahead of the rest
+    Ax.append(math.pi*rx[i]**2)
+    AR.append(Ax[i] / At)
+    
+    Volumex = Ax[i]*dx
+    Volumet = At*dx
+    
+    # match mach number to current area ratio
+    currentAR, j = get_currentAR(Ax[i]/At, ratioarray, relation)
+    
+    y1 = macharray[j]
+    y2 = macharray[j-1]
+    x1 = ratioarray[j]
+    x2 = ratioarray[j-1]
+    
+    Mx.append((Ax[i]/At - x1)*(y2 - y1) / (x2 - x1) + y1)
+    Px.append(Pcns / (1 + 0.5*(gam - 1)*Mx[i]**2)**(gam/(gam-1)))
+    Tx.append(Tcns / (Pcns/Px[i])**((gam-1)/gam))
+    Vx.append(math.sqrt(2*g*gam / (gam-1) *R*Tcns*(1 - (Px[i]/Pcns)**((gam-1)/gam))))
+    ax.append(math.sqrt(g*gam*R*Tx[i]))
+    sigmax.append((1/((.5*Twg/Tcns*(1+(gam-1)/2*Mx[i]**2)+.5)**0.68*(1+(gam+1)/2*Mx[i]**2)**0.12)))
+    hgx.append(((0.026/(2*rt)**0.2*(mucc**0.2*Cpg/Pr**0.6)*(Pcns*g/cstar)**0.8*(2*rt/rmean)**0.1)*(At/Ax[i])**0.9*sigmax[i]))
+    Tawx.append(edafilm*Tcns*((1+rturb*((gam-1)/2)*Mx[i]**2)/(1+((gam-1)/2)*Mx[i]**2)))
+    qx.append(hgx[i]*(Tawx[i]-Twg))
+
+del x[-1] # we added an extra x value we don't need
+
+
+
+
+
+
+
+# ********************
+# SECTION 15
+# ********************
+
+# Plots of properties along the length of the nozzle
+
+plt.figure(0)
+plt.scatter(x,rx)
+plt.xlabel('Nozzle Position (in)')
+plt.ylabel('Radius (in)')
+plt.xlim([0,math.ceil(max(x))])
+
+plt.figure(1)
+plt.scatter(x,Mx)
+plt.xlabel('Nozzle Position (in)')
+plt.ylabel('Mach Number')
+plt.xlim([0,math.ceil(max(x))])
+
+plt.figure(2)
+plt.scatter(x,Px)
+plt.xlabel('Nozzle Position (in)')
+plt.ylabel('Pressure (psia)')
+plt.xlim([0,math.ceil(max(x))])
+
+plt.figure(3)
+plt.scatter(x,Tx)
+plt.xlabel('Nozzle Position (in)')
+plt.ylabel('Temperature (R)')
+plt.xlim([0,math.ceil(max(x))])
+
+plt.figure(4)
+plt.scatter(x,Vx)
+plt.xlabel('Nozzle Position (in)')
+plt.ylabel('Velocity (ft/s)')
+plt.xlim([0,math.ceil(max(x))])
+
+plt.figure(5)
+plt.scatter(x,hgx)
+plt.xlabel('Nozzle Position (in)')
+plt.ylabel('Heat transfer coefficient (Btu/in^2/s/R)')
+plt.xlim([0,math.ceil(max(x))])
+
+plt.figure(6)
+plt.scatter(x,Tawx)
+plt.xlabel('Nozzle Position (in)')
+plt.ylabel('Adiabatic wall Temp of gas (R)')
+plt.xlim([0,math.ceil(max(x))])
+
+plt.figure(7)
+plt.scatter(x,qx)
+plt.xlabel('Nozzle Position (in)')
+plt.ylabel('Heat flux (Btu/in^2/s)')
+plt.xlim([0,math.ceil(max(x))])
+
+
+
+# ********************
+# SECTION 16
+# ********************
+
+#Determine heat added to fuel
+Aqx=[]
+Qx =[]
+lenCC = 0
+
+for j, rx_j in enumerate(rx):
+    if j==0: continue # it is a mystery to me why the previous script started at j=1
+    distance = math.sqrt(dx**2 + (rx[j-1] - rx_j)**2)
+    Aqx.append(distance * math.pi * (rx[j-1] + rx_j))
+    Qx.append(Aqx[j-1] * (qx[j-1] + qx[j]) * .5)
+    lenCC += distance #total length of channel
+Qtot = sum(Qx)
+
+
+# ********************
+# SECTION 17
+# ********************
+
+#pressure loss in cooling passage
+#determine a pressure loss calculated from finite element analysis rather than worst case friction factor at the throat
+delP = f * rhof / 2 * Vco**2 / d * (lenCC + Lc)
+
+
+
+
+
+# ********************
+# SECTION 18
+# ********************
+
+#this should probably move to its own page soon
+#calculating pressure drops and orofice sizes for injector
+
+DelPinj = Pco - Pcinj # - delP
+Afuel = wdotf/Cd/Ninj/math.sqrt(2/rhof*DelPinj)
+Aox   = wdoto/Cd/Ninj/math.sqrt(2/rhoo*DelPinj)
+
+Dfuel = math.sqrt(Afuel/math.pi)*2
+Dox   = math.sqrt(Aox/math.pi)*2
+
+vfuel = wdotf/Ninj/Afuel
+vox   = wdoto/Ninj/Aox
+
+gammaf = math.degrees(math.asin(wdoto*vox/wdotf/vfuel*math.sin(math.radians(gammao))))
+
+
+
+
+
+
+
+
+
+
+# Output:
+print("-------"  )
+print("Inputs:"  )
+print("-------\n")
+
+print("CEArun:")
+print("Molecular Weight,              M  (lb/lb-mol):     %.2f"   % M      )
+print("Weight mixture ratio,          rw            :     %.2f"   % rw     )
+print("Fuel mixture percentage,       rwfuel        :     %.2f"   % rwfuel )
+print("Nozzle stagnation temperature, Tcns   (deg R):     %.2f"   % Tcns   )
+print("Throat Temperature,            Tt     (deg R):     %.2f"   % Tt     )
+print("Specific heat ratio,           gamma         :     %.4f\n" % gam    )
+
+print("Optimization Parameters:")
+print("Force,                         F        (lbf):     %.2f"   % F      )
+print("Exit Pressure,                 Pe  (lbf/in^2):     %.2f"   % Pe     )
+print("Pressure at injector,          Pinj (lb/in^2):     %.2f\n" % Pinj   )
+
+print("Atmospheric Parameters:")
+print("Ambient Pressure,              Pa  (lbf/in^2):     %.2f"   % Pa     )
+print("Ambient temperature,           Tamb   (deg R):     %.2f\n" % Tamb   )
+
+print("Geometry Parameters:")
+print("Cooling channel aspect ratio at throat: %.2f" % ARhb )
+print("Discharge Coefficient: %.2f" % Cd )
+print("Contraction ratio: %.2f" % epsilonc )
+print("Desired injector angle for oxidizer (deg): %.2f" % gammao )
+print("Characteristic Chamber Length, L* (in): %.2f" % Lstar )
+print("Number of injector doublets: %.2f" % Ninj )
+print("Rapid contraction angle (deg): %.2f" % theta )
+print("Rapid expansion angle (deg): %.2f\n" % thetaN )
+
+print("-------"  )
+print("Outputs"  )
+print("-------\n")
+
+print("Pressures:")
+print("Total Chamber,  Pcinj (psi):     %.2f"   % Pcinj )
+print("Stagnation,     Pcns  (psi):     %.2f"   % Pcns  )
+print("Inlet,          Pi    (psi):     %.2f"   % Pi    )
+print("Throat,         Pt    (psi):     %.2f\n" % Pt    )
+
+print("Velocities:")
+print("Throat,         Vt (ft/sec):     %.2f"   % Vt    )
+print("Exit,           Ve (ft/sec):     %.2f"   % Ve    )
+print("Effective,      c  (ft/sec):     %.2f\n" % c     )
+
+print("Mass Flow Rates:")
+print("Total,          wdot  (lb/sec):  %.2f"   % wdot  )
+print("Fuel,           wdotf (lb/sec):  %.2f"   % wdotf )
+print("Oxidizer,       wdoto (lb/sec):  %.2f"   % wdoto )
+print("Theoretical,    Wdot  (lb/sec):  %.2f\n" % Wdot  )
+
+print("Temperatures:")
+print("Fuel (holding), Tci  (R):        %.2f"   % Tci   )
+print("Stagnation,     Tcns (R):        %.2f"   % Tcns  )
+print("Inlet,          Ti   (R):        %.2f\n" % Ti    )
+
+print("Geometries:")
+print("Expansion Ratio: %.2f" % epsilon)
+
+print("Mach Number at inlet: %.2f" % Mi)
+
+#Print Performance Parameters
+
+print("Specific Impulse,                Is   (lb s/lb):  %.2f" % Is    )
+print("Thrust Chamber specific impulse, Istc (lb s/lb):  %.2f" % Istc  )
+print("Characteristic Velocity,         c*   (ft/s):     %.2f" % cstar )
+print("Thrust Coefficient,              Cf:              %.2f" % Cf    )
+
+
+
+#print thrust chamber layout
+
+print("Chamber Volume,               Vc (in^3):  %.2f" % Vc)
+print("Chamber Cross Sectional Area, Ac (in^2):  %.2f" % Ac)
+print("Chamber Length,               Lc (in):    %.2f" % Lc)
+
+print("Viscosity in combustion chamber,                               mucc:   %.8f" % mucc)
+print("Viscosity in throat,                                           mut:    %.8f" % mut)
+print("Laminar Flow Local Recovery Factor,                            rlam:   %.2f" % rlam)
+print("Turbulent Flow Local Recovery Factor,                          rturb:  %.2f" % rturb)
+print("Effective Combustion Chamber Recovery Factor,                  Reffcc: %.2f" % Reffcc)
+print("Effective Throat Recovery Factor,                              Refft:  %.2f" % Refft)
+print("Adiabatic wall temperature at inlet,                           Tawi:   %.2f" % Tawi)
+print("Adiabatic wall temperature at throat,                          Tawt:   %.2f" % Tawt)
+print("Throat radius,                                                 rt:     %.3f" % rt)
+print("Exit radius,                                                   re:     %.3f" % re)
+print("Mean throat curvature,                                         rmean:  %.3f" % rmean)
+print("Correction factor for property variations across BL at throat, sigmat: %.2f" % sigmat)
+print("Correction factor for property variations across BL at inlet,  sigmai: %.2f" % sigmai)
+print("Specific heat at constant pressure,                            Cpg:    %.5f" % Cpg)
+print("Heat transfer coefficient at throat,                           hg:     %.5f" % hg)
+print("Required heat flux,                                            q:      %.2f" % q)
+print("Critical temperature of coolant,                               Tcc:    %.2f" % Tcc)
+print("Coolant capacity,                                              Qc:     %.2f" % Qc)
+print("Coolant wall temperature,                                      Twc     %.2f" % Twc)
+print("Coolant bulk temperature,                                      Tbulk:  %.2f" % Tbulk)
+print("Wall thickness,                                                t:      %.5f" % t)
+print("Coolant side heat transfer coefficient,                        hc:     %.5f" % hc)
+print("Overall heat transfer coefficient,                             H:      %.5f" % H)
+print("Film-Coolant flowrate per unit area of cooled wall, lb/in^2/s  Gc:     %.3f" % Gc)
+
+#print cooling channel geometry
+
+print("Fuel viscosity,                             muf:   %.8f" % muf)
+print("Fuel density,                               rhof:  %.5f" % rhof)
+print("Velocity for turbulent flow,                Vco (in/sec):   %.2f" % Vco)
+print("Base width at throat,                       bt:    %.5f" % bt)
+print("Base width at exit,                         be:    %.5f" % be)
+print("Cooling channel effective radius at throat, rccht: %.5f" % rccht)
+print("Cooling channel effective radius at exit,   rcche: %.5f" % rcche)
+print("Cooling channel hydraulic diameter,         d:     %.5f" % d)
+print("Cooling channel unobstructed area,          A_u:   %.5f" % A_u)
+print("Cooling channel obstructed area,            A_ob:  %.5f" % A_ob)
+print("Cooling channel total area,                 A_c:   %.5f" % A_c)
+print("Number of cooling channels,                 n:     %.0f" % n)
+print("Friction factor of cooling channel,         f:     %.5f" % f)
+print("Reynold's Number of cooling channel: %.5f" % Re)
+
+
+#Print wall stresses
+
+print("Combined tangential stress at nozzle exit,          Ste: %.2f" % Ste)
+print("Combined tangential stress at throat,               Stt: %.2f" % Stt)
+print("Maximum compressive stress as coaxial shell design, Sce: %.2f" % Sce) #does not account for support of channel walls
+
+#print("Maximum combustion chamber length: %f in" % lenCC) #this isnt correct, this is the total length of the channel, calculate remaining capacity as a combustion chamber length.
+print("Current combustion chamber length: %f in" % Lc)
+# print((Qc-Qtot)/(qx[len(qx)-1]*2*math.pi*(rx[len(rx)-1]))) #determine exactly what this is, looks like a ratio of heat fluxes
+print("Heat transfered into coolant:      %f" % Qtot)
+print("Coolant Capacity:                  %f" % Qc)
+
+#print(f)
+#print(rhof)
+print("Coolant velocity:              %f ft/sec" % (Vco/12)  )
+#print(d)
+print("Cooling channel pressure drop: %f psi"    % delP )
+
+print("Actual pressure drop (match to cooling chanel design) (psi): %f" % DelPinj)
+print("Diameter of fuel orofice (in): %f" % Dfuel)
+print("Diameter of ox orofice (in):   %f" % Dox)
+print("Angle of fuel jet (deg): %f" % gammaf)
+print("Angle of ox jet (deg): %f" % gammao)
+
+
+
+
+
+
+
+
