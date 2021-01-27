@@ -5,3 +5,4 @@ rocketCEA - NASA CEA wrapper - https://pypi.org/project/rocketcea/
 numpy
 scipy
 matplotlib
+RBFOpt
