@@ -1,13 +1,13 @@
 
 DESIGN VECTOR
 -----------------------------
-design total propellant mass               = 176.1857 kg
-design mass flow rate                      = 3.5747 kg/s
-design nozzle exit pressure                = 90764.3166 Pa
-total tankage length (after adjustment)    = 2.8434 m
+design total propellant mass               = 164.3506 kg
+design mass flow rate                      = 4.0192 kg/s
+design nozzle exit pressure                = 117393.3500 Pa
+total tankage length (after adjustment)    = 2.6527 m
 design airframe diameter                   = 0.3048 m.
-design airframe total length               = 7.0386 m.
-design GLOW                                = 287.8852 kg
+design airframe total length               = 6.9957 m.
+design GLOW                                = 280.0201 kg
 design ballast mass                        = 3.0000 kg
 conical part of nosecone length            = 1.1000 m
 design fin root chord                      = 0.7000 m
@@ -18,100 +18,100 @@ design fin thickness                       = 3.1750 mm
 
 CONSTRAINTS
 -----------------------------
-Largest angle of attack (c.f. < 8.0)         = 3.7661 deg
-L/D ratio (c.f. < 22.0)                       = 23.0927
-fin flutter ratio (c.f. > 1.0)                       = 27.5869
-Sommerfield criterion (c.f. pe/pa >= 0.35)    = 1.0458
-max acceleration (c.f. < 15.0)                = 6.9349 gs
-TWR at lift off (c.f. > 2.0)                 = 2.1072
-Lowest stability margin caliber (c.f. > 2.0) = 1.9580
-speed when leaving launch rail (c.f. > 22.0)  = 27.1591 m/s
-altitude at apogee (c.f. > 105.0)              = 101.4103 km
-design thrust (ground level) (c.f. < 10000)    = 8798.1361 N
+Largest angle of attack (c.f. < 8.0)         = 3.3959 deg
+L/D ratio (c.f. < 22.0)                       = 22.9519
+fin flutter ratio (c.f. > 1.0)                       = 23.9215
+Sommerfield criterion (c.f. pe/pa >= 0.35)    = 1.3494
+max acceleration (c.f. < 15.0)                = 7.1631 gs
+TWR at lift off (c.f. > 2.0)                 = 2.6082
+Lowest stability margin caliber (c.f. > 2.0) = 2.4008
+speed when leaving launch rail (c.f. > 22.0)  = 30.3754 m/s
+altitude at apogee (c.f. > 105.0)              = 101.7245 km
+design thrust (ground level) (c.f. < 10000)    = 9925.5499 N
 
 ADDITIONAL INFORMATION
 -----------------------------
-started at (lat, long, height): (32.9895470611227, -106.96946700765291, 1403.5659200997507)
-ended at (lat, long, height): (32.903889703004225, -105.77838809017993, 102782.67421055734)
-design thrust (vacuum)                     = 9.88 kN
-design total dry mass                      = 118.7120 kg
-mission time at landing                    = 175.4250 s
-mission time at apogee                     = 175.4250 s
-mission time at burnout                    = 47.3250 s
-max dynamic pressure                       = 94923.8061 Pa
-design dV                                  = 2.1677 km/s
-estimated minimum required dV              = 1.4103 km/s
+started at (lat, long, height): (32.94066366027494, -106.92170345471608, 1383.5369601289472)
+ended at (lat, long, height): (32.90835226541283, -106.23271661824988, 103095.00123202393)
+design thrust (vacuum)                     = 10.92 kN
+design total dry mass                      = 122.1660 kg
+mission time at landing                    = 169.3500 s
+mission time at apogee                     = 169.3500 s
+mission time at burnout                    = 39.2750 s
+max dynamic pressure                       = 108018.4011 Pa
+design dV                                  = 1.9739 km/s
+estimated minimum required dV              = 1.4125 km/s
 
 RCS SYSTEM DETAILS
 -----------------------------
-RCS impulse budget (N s): 688.2310863411253
-avg RCS nozzle thrust (N): 1.961610620895072
-N2 tank init pressure (Pa): 42845503.8915026
+RCS impulse budget (N s): 698.8587275540062
+avg RCS nozzle thrust (N): 2.063356148668196
+N2 tank init pressure (Pa): 48759162.654507674
 N2 tank radius (m): 0.0825
 N2 tank length (m): 0.45
-N2 actual mass (kg): 4.658216275359279
+N2 actual mass (kg): 5.301156584020571
 N2 actual tank volume (m^3): 0.00962210924932299
-N2 desired mass (kg): 4.199117192018949
-N2 desired tank volume (m^3): 0.008673784552693489
+N2 desired mass (kg): 4.858131057513063
+N2 desired tank volume (m^3): 0.008817975293132432
 
 ENGINE SYSTEM DETAILS
 -----------------------------
 Isogrid rib thickness:                     = 0.1270 cm
 Isogrid # of radial cell divisions:        = 24.0000
-Ox mass:                                   = 110.4892 kg
-Fuel mass:                                 = 65.7878 kg
-Ox tank length + ullage:                   = 1.5895 m
-Fuel tank length + ullage:                 = 1.2539 m
-Ox tank pressure:                          = 1285414.9665 Pa
-Fuel tank pressure:                        = 704873.4594 Pa
+Ox mass:                                   = 103.0781 kg
+Fuel mass:                                 = 61.3751 kg
+Ox tank length + ullage:                   = 1.4829 m
+Fuel tank length + ullage:                 = 1.1698 m
+Ox tank pressure:                          = 1607904.0694 Pa
+Fuel tank pressure:                        = 973289.1495 Pa
 Max tank pressure:                         = 1966743.2846 Pa
 
 ENGINE SYSTEM DETAILS
 -----------------------------
-Ox flow:                                   = 2.2890 kg/s
-Fuel flow:                                 = 1.2858 kg/s
+Ox flow:                                   = 2.5736 kg/s
+Fuel flow:                                 = 1.4456 kg/s
 OF Ratio:                                   = 1.7802
 design chamber pressure                    = 2413681.4447 Pa
-design expansion ratio                     = 4.9472
-design Exit area                           = 128.2301 cm^2
-design throat area                         = 25.9198 cm^2
+design expansion ratio                     = 4.0758
+design Exit area                           = 118.7803 cm^2
+design throat area                         = 29.1428 cm^2
 design Throat pressure                     = 1396082.4185 Pa
 design Throat temperature                  = 3142.3718 K
 design Chamber temperature                 = 3347.0105 K
-design exit velocity                       = 2446.9567 m/s
-design isp                                 = 249.5201 s
-design average impulse                     = 675858.5500 N*s
+design exit velocity                       = 2379.7084 m/s
+design isp                                 = 242.6627 s
+design average impulse                     = 623629.4132 N*s
 
 EFS SYSTEM DETAILS
 -----------------------------
 Outlet Pressure req. (Ox): 3878976.805896754 Pa
-Power requirement (Ox): 8992.554331933741 W
-Rotational Speed (Ox): 60000.00450797874 RPM
+Power requirement (Ox): 8993.727735627079 W
+Rotational Speed (Ox): 66746.06429642782 RPM
 Outlet Pressure req. (Fuel): 3448175.3942717537 Pa
-Power requirement (Fuel): 6998.775622520718 W
-Rotational Speed (Fuel): 54434.034504023926 RPM
+Power requirement (Fuel): 7169.52545568738 W
+Rotational Speed (Fuel): 65355.45761860852 RPM
 
 POST-FLIGHT MASS BUDGET
 -----------------------------
-LV4	GLOW:287.885194446995	Current Mass:115.0610561400041
-0.	Fin Can Module			Mass: 34.34
+LV4	GLOW:280.0200907886411	Current Mass:118.75939053510685
+0.	Fin Can Module			Mass: 34.43
   0.		Carbon Fiber Layer 1			Mass: 0.76
   1.		Nomex Layer 2				Mass: 0.12
   2.		Carbon Fiber Layer 3			Mass: 1.56
   3.		2Rings&6Clamps				Mass: 0.76
   4.		Bulkhead				Mass: 0.63
   5.		Bulkhead				Mass: 0.63
-  6.		Thrust Collar				Mass: 3.53
-  7.		Engine					Mass: 6.12
-  8.		EMS					Mass: 1.0
-  9.		EFS Plumbing				Mass: 2
-  10.		Fins					Mass: 8.18
+  6.		Fins					Mass: 8.18
     0.			Front						Mass: 2.04
     1.			Back						Mass: 2.04
     2.			Left						Mass: 2.04
     3.			Right						Mass: 2.04
-  11.		EFS 2 Motors/ESCs			Mass: 4.79
-  12.		EFS 4 Batteries				Mass: 4.26
+  7.		Thrust Collar				Mass: 3.53
+  8.		Engine					Mass: 6.12
+  9.		EMS					Mass: 1.0
+  10.		EFS Plumbing				Mass: 2
+  11.		EFS 2 Motors/ESCs			Mass: 4.84
+  12.		EFS 4 Batteries				Mass: 4.31
 1.	Engine Passthru Module		Mass: 7.28
   0.		Aluminum 6061-T6 Layer 1		Mass: 1.9
   1.		2Rings&6Clamps				Mass: 0.95
@@ -120,15 +120,15 @@ LV4	GLOW:287.885194446995	Current Mass:115.0610561400041
   4.		Launch Button				Mass: 0.21
   5.		Pipe					Mass: 0.84
   6.		Pipe					Mass: 2.12
-2.	LOX Tank			Mass: 13.57
-  0.		Tank Walls				Mass: 6.71
-  1.		Insulation				Mass: 1.22
+2.	LOX Tank			Mass: 12.88
+  0.		Tank Walls				Mass: 6.26
+  1.		Insulation				Mass: 1.13
   2.		Bottom Cap				Mass: 0.48
   3.		Top Cap					Mass: 0.48
   4.		2Rings&6Clamps				Mass: 1.27
   5.		Bulkhead				Mass: 0.63
   6.		Bulkhead				Mass: 0.63
-  7.		Propellant				Mass: 2.16
+  7.		Propellant				Mass: 2.0
 3.	Tank Passthru Module		Mass: 5.56
   0.		Aluminum 6061-T6 Layer 1		Mass: 1.9
   1.		2Rings&6Clamps				Mass: 0.95
@@ -136,15 +136,20 @@ LV4	GLOW:287.885194446995	Current Mass:115.0610561400041
   3.		Bulkhead				Mass: 0.63
   4.		Launch Button				Mass: 0.21
   5.		Pipe					Mass: 1.25
-4.	IPA/H20 Tank			Mass: 10.06
-  0.		Tank Walls				Mass: 5.29
+4.	IPA/H20 Tank			Mass: 9.61
+  0.		Tank Walls				Mass: 4.94
   1.		Bottom Cap				Mass: 0.48
   2.		Top Cap					Mass: 0.48
   3.		2Rings&6Clamps				Mass: 1.27
   4.		Bulkhead				Mass: 0.63
   5.		Bulkhead				Mass: 0.63
-  6.		Propellant				Mass: 1.29
-5.	AV Module			Mass: 7.31
+  6.		Propellant				Mass: 1.19
+5.	Tank Passthru Module		Mass: 4.11
+  0.		Aluminum 6061-T6 Layer 1		Mass: 1.9
+  1.		2Rings&6Clamps				Mass: 0.95
+  2.		Bulkhead				Mass: 0.63
+  3.		Bulkhead				Mass: 0.63
+6.	AV Module			Mass: 7.31
   0.		Fiberglass Layer 1			Mass: 0.63
   1.		Nomex Layer 2				Mass: 0.08
   2.		Fiberglass Layer 3			Mass: 1.29
@@ -152,36 +157,36 @@ LV4	GLOW:287.885194446995	Current Mass:115.0610561400041
   4.		Bulkhead				Mass: 0.63
   5.		Bulkhead				Mass: 0.63
   6.		AV/360					Mass: 3.3
-6.	N2 Passthru Module		Mass: 4.11
+7.	N2 Passthru Module		Mass: 4.11
   0.		Aluminum 6061-T6 Layer 1		Mass: 1.9
   1.		2Rings&6Clamps				Mass: 0.95
   2.		Bulkhead				Mass: 0.63
   3.		Bulkhead				Mass: 0.63
-7.	N2 Module			Mass: 9.7
+8.	N2 Module			Mass: 10.34
   0.		Carbon Fiber Layer 1			Mass: 0.52
   1.		Nomex Layer 2				Mass: 0.08
   2.		Carbon Fiber Layer 3			Mass: 1.08
   3.		2Rings&6Clamps				Mass: 0.76
   4.		Bulkhead				Mass: 0.63
   5.		Bulkhead				Mass: 0.63
-  6.		N2 Tank					Mass: 6.0
+  6.		N2 Tank					Mass: 6.64
     0.			Tank Walls					Mass: 1.17
     1.			Bottom Cap					Mass: 0.08
     2.			Top Cap						Mass: 0.08
-    3.			Propellant					Mass: 4.66
-8.	RCS Module			Mass: 8.13
+    3.			Propellant					Mass: 5.3
+9.	RCS Module			Mass: 8.13
   0.		Aluminum 6061-T6 Layer 1		Mass: 1.9
   1.		2Rings&6Clamps				Mass: 0.95
   2.		Bulkhead				Mass: 0.63
   3.		Bulkhead				Mass: 0.63
   4.		Gas Jet					Mass: 4.02
-9.	ERS Module			Mass: 7.63
+10.	ERS Module			Mass: 7.63
   0.		Aluminum 6061-T6 Layer 1		Mass: 1.9
   1.		2Rings&6Clamps				Mass: 0.95
   2.		Bulkhead				Mass: 0.63
   3.		Bulkhead				Mass: 0.63
   4.		ERS					Mass: 3.52
-10.	Nosecone			Mass: 7.39
+11.	Nosecone			Mass: 7.39
   0.		Cylinder				Mass: 1.98
     0.			Carbon Fiber Layer 1				Mass: 0.19
     1.			Nomex Layer 2					Mass: 0.03
