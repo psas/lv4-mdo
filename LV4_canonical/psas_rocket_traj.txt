@@ -1,0 +1,374 @@
+06/02/2021 20:12:40
+DESIGN VECTOR
+-----------------------------
+design total propellant mass               = 210.2106 kg
+design unadjusted propellant mass          = 205.7901 kg
+design mass flow rate                      = 4.6961 kg/s
+design nozzle exit pressure                = 102847.5459 Pa
+total tankage length (after adjustment)    = 3.5426 m
+design airframe diameter                   = 0.3048 m.
+design airframe total length               = 7.8856 m.
+design GLOW                                = 324.6545 kg
+design ballast mass                        = 2.0000 kg
+conical part of nosecone length            = 1.1000 m
+design fin root chord                      = 0.7000 m
+design fin tip chord                       = 0.4500 m
+design fin sweep angle                     = 70.0000 deg
+design fin span                            = 0.4000 m
+design fin thickness                       = 3.1750 mm
+
+CONSTRAINTS
+-----------------------------
+Largest angle of attack (c.f. < 8.0)         = 3.7385 deg
+L/D ratio (c.f. < 22.0)                       = 25.8715
+fin flutter ratio (c.f. > 1.0)                       = 25.4705
+Sommerfield criterion (c.f. pe/pa >= 0.35)    = 1.1822
+max acceleration (c.f. < 15.0)                = 7.7428 gs
+TWR at lift off (c.f. > 2.0)                 = 2.1003
+Lowest stability margin caliber (c.f. > 2.0) = 2.4900
+speed when leaving launch rail (c.f. > 22.0)  = 27.6556 m/s
+altitude at apogee (c.f. > 105.0)              = 101.6544 km
+design thrust (ground level) (c.f. < 10000)    = 9890.3441 N
+
+ADDITIONAL INFORMATION
+-----------------------------
+started at (lat, long, height): (32.94066365369146, -106.92170335423995, 1383.8863406899084)
+ended at (lat, long, height): (32.891507432944174, -105.94236004803068, 103019.18000876914)
+design thrust (vacuum)                     = 11.60 kN
+design total dry mass                      = 122.9590 kg
+mission time at landing                    = 172.8000 s
+mission time at apogee                     = 172.8000 s
+mission time at burnout                    = 42.9500 s
+max dynamic pressure                       = 104626.8017 Pa
+design dV                                  = 1.5566 km/s
+estimated minimum required dV              = 1.4120 km/s
+
+RCS SYSTEM DETAILS
+-----------------------------
+RCS impulse budget (N s): 752.816921537144
+avg RCS nozzle thrust (N): 2.1782897035215494
+N2 tank init pressure (Pa): 36257656.78459417
+N2 tank radius (m): 0.0825
+N2 tank length (m): 0.45
+N2 actual mass (kg): 3.941977374524096
+N2 actual tank volume (m^3): 0.00962210924932299
+N2 desired mass (kg): 3.5805598060019515
+N2 desired tank volume (m^3): 0.008739912575283329
+
+ENGINE SYSTEM DETAILS
+-----------------------------
+Isogrid rib thickness:                     = 0.1270 cm
+Isogrid # of radial cell divisions:        = 24.0000
+Ox mass:                                   = 130.1154 kg
+Fuel mass:                                 = 80.2152 kg
+Ox tank length + ullage:                   = 1.8719 m
+Fuel tank length + ullage:                 = 1.6707 m
+Ox tank pressure:                          = 691647.2655 Pa
+Fuel tank pressure:                        = 579727.1664 Pa
+Max tank pressure:                         = 1966743.2846 Pa
+
+ENGINE SYSTEM DETAILS
+-----------------------------
+Ox flow:                                   = 2.9692 kg/s
+Fuel flow:                                 = 1.7269 kg/s
+OF Ratio:                                   = 1.7194
+design chamber pressure                    = 849299.4823 Pa
+design expansion ratio                     = 2.1299
+design Exit area                           = 204.3929 cm^2
+design throat area                         = 95.9638 cm^2
+design Throat pressure                     = 491892.7485 Pa
+design Throat temperature                  = 3015.1016 K
+design Chamber temperature                 = 3205.7930 K
+design exit velocity                       = 2037.1013 m/s
+design isp                                 = 207.7265 s
+design average impulse                     = 461546.0811 N*s
+
+EFS SYSTEM DETAILS
+-----------------------------
+Outlet Pressure req. (Ox): 1923499.3528141743 Pa
+Power requirement (Ox): 6714.109030954826 W
+Rotational Speed (Ox): 32361.035059749265 RPM
+Outlet Pressure req. (Fuel): 1492697.9411891743 Pa
+Power requirement (Fuel): 4260.360845681691 W
+Rotational Speed (Fuel): 41253.62806701395 RPM
+
+POST-FLIGHT MASS BUDGET
+-----------------------------
+LV4	GLOW:324.65446884924637	Current Mass:118.50886368321609
+0.	Fin Can Module			Mass: 31.49
+  0.		Carbon Fiber Layer 1			Mass: 0.76
+  1.		Nomex Layer 2				Mass: 0.12
+  2.		Carbon Fiber Layer 3			Mass: 1.56
+  3.		2Rings&6Clamps				Mass: 0.76
+  4.		Bulkhead				Mass: 0.63
+  5.		Bulkhead				Mass: 0.63
+  6.		Fins					Mass: 8.18
+    0.			Front						Mass: 2.04
+    1.			Back						Mass: 2.04
+    2.			Left						Mass: 2.04
+    3.			Right						Mass: 2.04
+  7.		Thrust Collar				Mass: 3.53
+  8.		Engine					Mass: 6.12
+  9.		EMS					Mass: 1.0
+  10.		EFS Plumbing				Mass: 2
+  11.		EFS 2 Motors/ESCs			Mass: 3.29
+  12.		EFS 4 Batteries				Mass: 2.93
+1.	Engine Passthru Module		Mass: 7.28
+  0.		Aluminum 6061-T6 Layer 1		Mass: 1.9
+  1.		2Rings&6Clamps				Mass: 0.95
+  2.		Bulkhead				Mass: 0.63
+  3.		Bulkhead				Mass: 0.63
+  4.		Launch Button				Mass: 0.21
+  5.		Pipe					Mass: 0.84
+  6.		Pipe					Mass: 2.12
+2.	LOX Tank			Mass: 15.41
+  0.		Tank Walls				Mass: 7.9
+  1.		Insulation				Mass: 1.43
+  2.		Bottom Cap				Mass: 0.48
+  3.		Top Cap					Mass: 0.48
+  4.		2Rings&6Clamps				Mass: 1.27
+  5.		Bulkhead				Mass: 0.63
+  6.		Bulkhead				Mass: 0.63
+  7.		Propellant				Mass: 2.59
+3.	Tank Passthru Module		Mass: 5.56
+  0.		Aluminum 6061-T6 Layer 1		Mass: 1.9
+  1.		2Rings&6Clamps				Mass: 0.95
+  2.		Bulkhead				Mass: 0.63
+  3.		Bulkhead				Mass: 0.63
+  4.		Launch Button				Mass: 0.21
+  5.		Pipe					Mass: 1.25
+4.	IPA/H20 Tank			Mass: 12.13
+  0.		Tank Walls				Mass: 7.05
+  1.		Bottom Cap				Mass: 0.48
+  2.		Top Cap					Mass: 0.48
+  3.		2Rings&6Clamps				Mass: 1.27
+  4.		Bulkhead				Mass: 0.63
+  5.		Bulkhead				Mass: 0.63
+  6.		Propellant				Mass: 1.6
+5.	Tank Passthru Module		Mass: 4.11
+  0.		Aluminum 6061-T6 Layer 1		Mass: 1.9
+  1.		2Rings&6Clamps				Mass: 0.95
+  2.		Bulkhead				Mass: 0.63
+  3.		Bulkhead				Mass: 0.63
+6.	AV Module			Mass: 7.31
+  0.		Fiberglass Layer 1			Mass: 0.63
+  1.		Nomex Layer 2				Mass: 0.08
+  2.		Fiberglass Layer 3			Mass: 1.29
+  3.		2Rings&6Clamps				Mass: 0.76
+  4.		Bulkhead				Mass: 0.63
+  5.		Bulkhead				Mass: 0.63
+  6.		AV/360					Mass: 3.3
+7.	N2 Passthru Module		Mass: 4.11
+  0.		Aluminum 6061-T6 Layer 1		Mass: 1.9
+  1.		2Rings&6Clamps				Mass: 0.95
+  2.		Bulkhead				Mass: 0.63
+  3.		Bulkhead				Mass: 0.63
+8.	N2 Module			Mass: 8.98
+  0.		Carbon Fiber Layer 1			Mass: 0.52
+  1.		Nomex Layer 2				Mass: 0.08
+  2.		Carbon Fiber Layer 3			Mass: 1.08
+  3.		2Rings&6Clamps				Mass: 0.76
+  4.		Bulkhead				Mass: 0.63
+  5.		Bulkhead				Mass: 0.63
+  6.		N2 Tank					Mass: 5.28
+    0.			Tank Walls					Mass: 1.17
+    1.			Bottom Cap					Mass: 0.08
+    2.			Top Cap						Mass: 0.08
+    3.			Propellant					Mass: 3.94
+9.	RCS Module			Mass: 8.13
+  0.		Aluminum 6061-T6 Layer 1		Mass: 1.9
+  1.		2Rings&6Clamps				Mass: 0.95
+  2.		Bulkhead				Mass: 0.63
+  3.		Bulkhead				Mass: 0.63
+  4.		Gas Jet					Mass: 4.02
+10.	ERS Module			Mass: 7.63
+  0.		Aluminum 6061-T6 Layer 1		Mass: 1.9
+  1.		2Rings&6Clamps				Mass: 0.95
+  2.		Bulkhead				Mass: 0.63
+  3.		Bulkhead				Mass: 0.63
+  4.		ERS					Mass: 3.52
+11.	Nosecone			Mass: 6.39
+  0.		Cylinder				Mass: 1.98
+    0.			Carbon Fiber Layer 1				Mass: 0.19
+    1.			Nomex Layer 2					Mass: 0.03
+    2.			Carbon Fiber Layer 3				Mass: 0.38
+    3.			2Rings&6Clamps					Mass: 0.76
+    4.			Bulkhead					Mass: 0.63
+  1.		Cone					Mass: 0.71
+    0.			Carbon Fiber Layer 1				Mass: 0.71
+  2.		Parachutes				Mass: 1.1
+  3.		Nosetip					Mass: 0.6
+  4.		Ballast					Mass: 2
+  5.		Weight Perturbation			Mass: 0
+
+
+ *******************************************************************************
+
+         NASA-GLENN CHEMICAL EQUILIBRIUM PROGRAM CEA, OCTOBER 18, 2002
+                   BY  BONNIE MCBRIDE AND SANFORD GORDON
+      REFS: NASA RP-1311, PART I, 1994 AND NASA RP-1311, PART II, 1996
+
+ *******************************************************************************
+
+
+
+ reac
+  fuel C3H8O-2propanol C 3 H 8 O 1    wt%=99
+  h,cal=-65133.     t(k)=298.15   rho,g/cc=0.786
+  fuel water H 2 O 1  wt%=1
+  h,cal=-68308.  t(k)=298.15 rho,g/cc=0.9998
+  oxid O2(L)  O 2
+  h,cal=-3102.      t(k)=90.18       wt%=100.
+  
+ prob case=RocketCEA,
+  rocket equilibrium   p,psia=123.148425,  supar=2.129896,
+  o/f=1.719403,
+  
+  
+ output calories  transport
+ end
+
+ OPTIONS: TP=F  HP=F  SP=F  TV=F  UV=F  SV=F  DETN=F  SHOCK=F  REFL=F  INCD=F
+ RKT=T  FROZ=F  EQL=T  IONS=F  SIUNIT=F  DEBUGF=F  SHKDBG=F  DETDBG=F  TRNSPT=T
+
+ TRACE= 0.00E+00  S/R= 0.000000E+00  H/R= 0.000000E+00  U/R= 0.000000E+00
+
+ Pc,BAR =     8.490752
+
+ Pc/P =
+
+ SUBSONIC AREA RATIOS =
+
+ SUPERSONIC AREA RATIOS =     2.1299
+
+ NFZ=  1  Mdot/Ac= 0.000000E+00  Ac/At= 0.000000E+00
+
+ O/F =   1.719403
+
+                       EFFECTIVE FUEL     EFFECTIVE OXIDANT        MIXTURE
+ ENTHALPY                  h(2)/R              h(1)/R               h0/R
+ (KG-MOL)(K)/KG       -0.55902940E+03     -0.48782395E+02     -0.23641439E+03
+
+ KG-FORM.WT./KG             bi(2)               bi(1)               b0i
+  *C                   0.49421732E-01      0.00000000E+00      0.18173743E-01
+  *H                   0.13290146E+00      0.00000000E+00      0.48871556E-01
+  *O                   0.17028995E-01      0.62502344E-01      0.45780531E-01
+
+ POINT ITN      T            C           H           O 
+   1   23    3205.752     -16.331     -10.605     -16.398
+ Pinf/Pt = 1.726593
+   2    4    3055.651     -16.603     -10.800     -16.713
+ Pinf/Pt = 1.725818
+   2    2    3055.772     -16.603     -10.799     -16.713
+   3    5    2619.800     -17.188     -11.350     -17.974
+   3    3    2638.733     -17.174     -11.328     -17.906
+   3    2    2638.825     -17.174     -11.328     -17.905
+
+
+
+
+
+              THEORETICAL ROCKET PERFORMANCE ASSUMING EQUILIBRIUM
+
+           COMPOSITION DURING EXPANSION FROM INFINITE AREA COMBUSTOR
+
+ Pinj =   123.1 PSIA
+ CASE = RocketCEA,     
+
+             REACTANT                    WT FRACTION      ENERGY      TEMP
+                                          (SEE NOTE)      CAL/MOL       K  
+ fuel        C3H8O-2propanol             99.0000000    -65133.000    298.150
+ fuel        water                        1.0000000    -68308.000    298.150
+ oxid        O2(L)                      100.0000000     -3102.000     90.180
+
+ O/F=    1.71940  %FUEL= 36.772777  R,EQ.RATIO= 1.327710  PHI,EQ.RATIO= 1.379638
+
+                 CHAMBER   THROAT     EXIT
+ Pinf/P            1.0000   1.7258   8.2820
+ P, ATM            8.3797   4.8555   1.0118
+ T, K             3205.75  3055.77  2638.83
+ RHO, G/CC       7.0161-4 4.3210-4 1.0758-4
+ H, CAL/G         -469.81  -622.92 -1014.27
+ U, CAL/G         -759.05  -895.05 -1242.03
+ G, CAL/G        -9975.00 -9683.42 -8838.50
+ S, CAL/(G)(K)     2.9650   2.9650   2.9650
+
+ M, (1/n)          22.025   22.314   23.024
+ (dLV/dLP)t      -1.03461 -1.02838 -1.01102
+ (dLV/dLT)p        1.6769   1.5834   1.2620
+ Cp, CAL/(G)(K)    1.7272   1.5979   1.0565
+ GAMMAs            1.1265   1.1253   1.1352
+ SON VEL,M/SEC     1167.6   1131.9   1040.1
+ MACH NUMBER        0.000    1.000    2.052
+
+ TRANSPORT PROPERTIES (GASES ONLY)
+   CONDUCTIVITY IN UNITS OF MILLICALORIES/(CM)(K)(SEC)
+
+ VISC,MILLIPOISE   1.0889   1.0519  0.94856
+
+  WITH EQUILIBRIUM REACTIONS
+
+ Cp, CAL/(G)(K)    1.7272   1.5979   1.0565
+ CONDUCTIVITY      4.8699   4.3608   2.6886
+ PRANDTL NUMBER    0.3862   0.3854   0.3728
+
+  WITH FROZEN REACTIONS
+
+ Cp, CAL/(G)(K)    0.5203   0.5177   0.5086
+ CONDUCTIVITY      1.0789   1.0272   0.8917
+ PRANDTL NUMBER    0.5251   0.5302   0.5410
+
+ PERFORMANCE PARAMETERS
+
+ Ae/At                      1.0000   2.1299
+ CSTAR, FT/SEC              5695.5   5695.5
+ CF                         0.6520   1.2296
+ Ivac,LB-SEC/LB              218.0    263.2
+ Isp, LB-SEC/LB              115.4    217.7
+
+
+ MOLE FRACTIONS
+
+ *CO              0.26916  0.26441  0.25093
+ *CO2             0.13111  0.14113  0.16750
+ *H               0.03159  0.02695  0.01415
+ HO2              0.00003  0.00001  0.00000
+ *H2              0.10368  0.10209  0.10166
+ H2O              0.39381  0.40944  0.44569
+ *O               0.00839  0.00599  0.00133
+ *OH              0.04978  0.04051  0.01637
+ *O2              0.01244  0.00947  0.00237
+
+  * THERMODYNAMIC PROPERTIES FITTED TO 20000.K
+
+    PRODUCTS WHICH WERE CONSIDERED BUT WHOSE MOLE FRACTIONS
+    WERE LESS THAN 5.000000E-06 FOR ALL ASSIGNED CONDITIONS
+
+ *C              *CH             CH2             CH3             CH2OH          
+ CH3O            CH4             CH3OH           CH3OOH          COOH           
+ *C2             C2H             C2H2,acetylene  C2H2,vinylidene CH2CO,ketene   
+ O(CH)2O         HO(CO)2OH       C2H3,vinyl      CH3CO,acetyl    C2H4           
+ C2H4O,ethylen-o CH3CHO,ethanal  CH3COOH         OHCH2COOH       C2H5           
+ C2H6            C2H5OH          CH3OCH3         CH3O2CH3        C2O            
+ *C3             C3H3,1-propynl  C3H3,2-propynl  C3H4,allene     C3H4,propyne   
+ C3H4,cyclo-     C3H5,allyl      C3H6,propylene  C3H6,cyclo-     C3H6O,propylox 
+ C3H6O,acetone   C3H6O,propanal  C3H7,n-propyl   C3H7,i-propyl   C3H8           
+ C3H8O,1propanol C3H8O,2propanol C3O2            *C4             C4H2,butadiyne 
+ C4H4,1,3-cyclo- C4H6,butadiene  C4H6,1butyne    C4H6,2butyne    C4H6,cyclo-    
+ C4H8,1-butene   C4H8,cis2-buten C4H8,tr2-butene C4H8,isobutene  C4H8,cyclo-    
+ (CH3COOH)2      C4H9,n-butyl    C4H9,i-butyl    C4H9,s-butyl    C4H9,t-butyl   
+ C4H10,n-butane  C4H10,isobutane *C5             C5H6,1,3cyclo-  C5H8,cyclo-    
+ C5H10,1-pentene C5H10,cyclo-    C5H11,pentyl    C5H11,t-pentyl  C5H12,n-pentane
+ C5H12,i-pentane CH3C(CH3)2CH3   C6H2            C6H5,phenyl     C6H5O,phenoxy  
+ C6H6            C6H5OH,phenol   C6H10,cyclo-    C6H12,1-hexene  C6H12,cyclo-   
+ C6H13,n-hexyl   C6H14,n-hexane  C7H7,benzyl     C7H8            C7H8O,cresol-mx
+ C7H14,1-heptene C7H15,n-heptyl  C7H16,n-heptane C7H16,2-methylh C8H8,styrene   
+ C8H10,ethylbenz C8H16,1-octene  C8H17,n-octyl   C8H18,n-octane  C8H18,isooctane
+ C9H19,n-nonyl   C10H8,naphthale C10H21,n-decyl  C12H9,o-bipheny C12H10,biphenyl
+ HCO             HCCO            HCHO,formaldehy HCOOH           H2O2           
+ (HCOOH)2        O3              C(gr)           H2O(cr)         H2O(L)         
+
+ NOTE. WEIGHT FRACTION OF FUEL IN TOTAL FUELS AND OF OXIDANT IN TOTAL OXIDANTS
+
+
+
