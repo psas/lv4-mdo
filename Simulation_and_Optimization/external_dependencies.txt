@@ -1,6 +1,6 @@
 External Dependencies:
 pyHWM14 - Horizontal Wind Model 2014  - https://pypi.org/project/pyhwm2014/
-nrlmsise00 - Naval Research Labatory Mass Spectrometer Incoherent Scatter Radar Extended Model - https://pypi.org/project/nrlmsise00/
+nrlmsise00 - Naval Research Laboratory Mass Spectrometer Incoherent Scatter Radar Extended Model - https://pypi.org/project/nrlmsise00/
 rocketCEA - NASA CEA wrapper - https://pypi.org/project/rocketcea/
 numpy
 scipy
