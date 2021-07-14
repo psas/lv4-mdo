@@ -1,0 +1,11 @@
+name: lv4_mdo_p3p7
+dependencies:
+        - python=3.7
+        - numpy
+        - scipy
+        - matplotlib
+        - pip:
+          - pyhwm2014
+          - nrlmsise00 
+          - rocketcea 
+          - rbfopt 
