@@ -30,4 +30,49 @@ Note, Openrocket only works on Java 8 and below. Check out the readme in rocket_
    conda env update --file lv4_mdo_p3p7.yml --prune
 4) Load the python environment:
    conda activate lv4_mdo_p3p7
-    
+
+# Detailed Manual Installation
+This MDO has been successfully installed and compiled on Ubuntu and MacOS. 
+
+### Python Environment
+* numpy
+* scipy
+* matplotlib
+
+The following required modules are problematic to install on Windows.
+Some of them require a fortran compiler.
+Each one will have more details below.
+* pyhwm2014
+* nrlmsise00 
+* rocketCEA
+* rbfopt
+
+### pyhwm2014 installation
+This module may be installed with `pip install pyhwm2014` but is not recommended.
+Instead, download the code from [their GitHub repository](https://github.com/rilma/pyHWM14) and install it manually from the source code installation directions.
+However, change the last command from `pip install -e . --process-dependency-links` to `pip install -e ./` as shown below:
+```
+$ git clone https://github.com/rilma/pyHWM14.git
+$ cd pyHWM14
+$ pip -q install coveralls
+$ pip install numpy
+$ pip install -e ./
+```
+
+### nrlmsise00 installation
+Install with `pip install nrlmsise00`
+Requires fortran compiler.
+
+
+### rocketCEA installation
+Install with `pip install rocketcea`
+Requires fortran compiler.
+
+
+### rbfopt installation
+Install with `pip install rbfopt`
+This module requires Bonmin, which is distrubuted under the EPL (Eclipse Public License). 
+Bonmin is also dependent on other third party code which are distributed under different licenses than Bonmin.
+Check out Bonmin's [Getting Started with Bonmin](https://projects.coin-or.org/Bonmin/wiki/GettingStarted)
+Check out Bonmin's [Third Party required code](here: https://projects.coin-or.org/Bonmin/wiki/ThirdParty)
+
