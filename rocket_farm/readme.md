@@ -4,7 +4,7 @@ psas_rocket.ork is the template for future rockets, make changes in it to make c
 
 The rockets are ordered in sequence, and there are engine files in ~/.openrocket/ThrustCurves/ that correspond numerically.
 
-Just restart openrocket to load new engines, then select the corresponding engine when opening rocket in openrocket. Make sure you adjust ballast weight in nosecone and fin size/shape to maintain stability > 2 throughout flight, if you must.
+Just restart openrocket to load new engines, then select the corresponding engine when opening rocket in openrocket (Motors & Configuration -> Select motor -> PSAS [Run#]. Make sure you adjust ballast weight in nosecone and fin size/shape to maintain stability > 2 throughout flight, if you must.
 
 
 Openrocket simulation settings to emulate actual launch site:
