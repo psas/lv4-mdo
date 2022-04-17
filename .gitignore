@@ -60,3 +60,6 @@ target/
 #*.rse
 #*.csv
 rocket_farm/
+
+# Bonmin and Ipopt paths
+Simulation_and_Optimization/bonmin_paths.yaml
