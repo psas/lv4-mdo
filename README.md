@@ -81,7 +81,7 @@ Install with `pip install rbfopt`.
 
 This module requires Bonmin, which is distrubuted under the EPL (Eclipse Public License). 
 
-Bonmin is also dependent on other third party code which are distributed under different licenses than Bonmin.
+Bonmin is dependent on third party solvers which are distributed under different licenses than Bonmin.
 
-Check out Bonmin's pages on [Getting Started with Bonmin](https://projects.coin-or.org/Bonmin/wiki/GettingStarted) and [Third Party required code](https://projects.coin-or.org/Bonmin/wiki/ThirdParty)
+Check out Bonmin's pages on [Getting Started with Bonmin](https://projects.coin-or.org/Bonmin/wiki/GettingStarted) and [Third Party solvers](https://projects.coin-or.org/Bonmin/wiki/ThirdParty)
 
