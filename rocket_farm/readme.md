@@ -1,6 +1,6 @@
 This is where rockets will go after our program optimizes and creates them.
 
-psas_rocket.ork is the template for future rockets, make changes in it to make changes to future rockets.
+template.ork is the template for future rockets, make changes in it to make changes to future rockets.
 
 The rockets are ordered in sequence, and there are engine files in ~/.openrocket/ThrustCurves/ that correspond numerically.
 
