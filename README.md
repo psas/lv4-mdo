@@ -85,3 +85,13 @@ Bonmin is dependent on third party solvers which are distributed under different
 
 Check out Bonmin's pages on [Getting Started with Bonmin](https://projects.coin-or.org/Bonmin/wiki/GettingStarted) and [Third Party solvers](https://projects.coin-or.org/Bonmin/wiki/ThirdParty)
 
+
+### Other tips
+Install tensorflow with `pip install tensorflow`
+
+Reinstall all jupyter notebook dependencies
+
+Reinstall pyhwm2014 with the manual instructions above (via cloning the repository and installing from there)
+
+Make sure you install coveralls with `pip install coveralls`
+
