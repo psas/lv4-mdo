@@ -1,5 +1,5 @@
 
-from system_definition import *
+from .system_definition import R_UNIV, N2_TEMP, N2_MM
 
 # # The purpose of this code is to determine the requirements for pressurant based on the specifications of downstream subsystems. Refer to Huzel and Huang for explanations.
 

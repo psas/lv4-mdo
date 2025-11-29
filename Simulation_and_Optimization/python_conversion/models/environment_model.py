@@ -1,18 +1,16 @@
 
+from datetime import datetime
+import numpy as np
+import math
+import nrlmsise00
+import pyhwm2014
 
-from system_definition import *
+from .quaternions import *
 
-
-"""
-imports 
-numpy as np
-
-LAUNCH_SITE_ALT
-"""
 
 
 class Environment():
-    def __init__(self, aero_model, ref_ground_wind, latitude=32.9895472, longitude=-106.9694681, height=LAUNCH_SITE_ALT):
+    def __init__(self, aero_model, ref_ground_wind, latitude, longitude, height):
         self.ka        = 1.4                   # Ratio of specific heats, air  
         self.Ra        = 287.058                 # Avg. specific gas constant (dry air)
         self.longitude = np.radians(longitude)

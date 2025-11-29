@@ -3,14 +3,16 @@
 
 PROPELLANT_SET = False
 
-from system_definition import *
-from propellant_optimization import *
-from environment_model import *
-from aerodynamics_model import *
+from customize.system_definition import *
+from customize.propellant_optimization import get_propellant_properties
 from structural_model import *
 from structural_analysis import *
-from thermo import *
-from fin_staging import *
+# from fin_staging import *
+
+
+from models.environment_model import *
+from models.aerodynamics_model import *
+from models.thermodynamics import *
 
 import display_information as disp_info
 
@@ -432,7 +434,7 @@ def trajectory(fin_staging, stage_drop_ECEF, stage_root, stage_tip, stage_sweep,
 
     with open(os.devnull, "w") as f, contextlib.redirect_stdout(f):
         _, _, _, _, _, _, LV4.cea_output = get_propellant_properties(ipa_wt, of, p_ch, LV4.engine.ex, True)
-    env = Environment(aero_model, 17.7, LAUNCH_SITE_LOC[0] + perturbations[0], LAUNCH_SITE_LOC[1] + perturbations[1])
+    env = Environment(aero_model, 17.7, LAUNCH_SITE_LOC[0] + perturbations[0], LAUNCH_SITE_LOC[1] + perturbations[1], LAUNCH_SITE_ALT)
     LV4.tip_off_error = perturbations[4]
     LV4.wind_on       = perturbations[11]
     # doing engine perturbations after creating engine so mimic reduced performance for identical geometries

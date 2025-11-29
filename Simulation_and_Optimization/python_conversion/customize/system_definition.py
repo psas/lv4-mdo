@@ -50,7 +50,7 @@ global PROPELLANT_SET
 
 PROPELLANT_SET = False
 
-from propellant_optimization import propellant_optimizer
+from customize.propellant_optimization import propellant_optimizer
 if PROPELLANT_SET:
     ipa_wt, of_ratio, p_ch, Tc, MW, gamma, propellant_string = propellant_optimizer(2413166)
 

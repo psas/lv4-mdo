@@ -1,9 +1,20 @@
 
-from system_definition import *
+
 import scipy.interpolate
 import numpy as np
+from .quaternions import *
+
+
+# these should be moved to another place, structure or something
+C_D_DROGUE = 0.97 # from rocketman
+C_D_MAIN = 2.2 # from rocketman
+
+
 
 project_normal = np.identity(3) - np.outer(np.array([0,0,1]), np.array([0,0,1]))
+
+
+
 
 class AeroModel():
     def __init__(self, diameter, body_len, nose_len, fin):

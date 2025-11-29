@@ -1,0 +1,9 @@
+{
+	"EPSILON_PIPE": {"value": 1, "comment": "drawn tubing relative roughness"},
+	"D_PIPE": {"value": 1, "comment": "pipe diameter, this should be an argument"},
+	"A_PIPE": {"value": 1, "comment": "pipe area, this should be calculated"},
+	"LFETS_PIPE_AREA": {"value": 1, "comment": "lefets pipe area, this should be calculated"},
+	"K_L": {"value": 1, "comment": "loss coefficient of regular flanged 90"},
+	"PUMP_EFF": {"value": 1, "comment": "pump efficiency"},
+	"U_SS": {"value": 1, "comment": "suction speed"}
+}

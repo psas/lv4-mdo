@@ -2,7 +2,7 @@
 
 import matplotlib.pyplot as plt
 
-from system_definition import *
+from customize.system_definition import *
 import numpy as np
 from datetime import datetime
 

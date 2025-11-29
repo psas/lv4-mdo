@@ -3,10 +3,11 @@
 
 # hey, welcome to one of the silliest parts of the script
 
-from system_definition import *
-from efs_system_requirements import power_req
-from pressure_requirements import n2_prop_reqs
+from customize.system_definition import * # about half of system definition is just for this module
+from customize.efs_requirements import power_req
+from customize.pressure_requirements import n2_prop_reqs
 
+import numpy as np
 ###
 # Geometry
 ###

@@ -3,17 +3,9 @@
 # original credit to Julio, edits by Cory, clean up by Max
 
 
-"""
-Global varialbes used
+from .system_definition import EPSILON_PIPE, D_PIPE, LFETS_PIPE_AREA, G_N, A_PIPE, K_L, PUMP_EFF, U_SS
 
-A_PIPE
-LFETS_PIPE_AREA
-D_PIPE
-G_N (gravity)
-PUMP_EFF (pump efficiency)
-"""
-
-from system_definition import *
+import numpy as np
 
 RtoD = EPSILON_PIPE / D_PIPE # Rougness to Diameter Ratio
 
