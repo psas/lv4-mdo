@@ -106,7 +106,6 @@ air_enthalpy_data = np.array(flatten_nested_list(air_enthalpy_data))
 air_enthalpy = interpolate.LinearNDInterpolator(list(zip(air_enthalpy_x, air_enthalpy_y)), air_enthalpy_data)
 
 
-print(air_enthalpy(211.6, 900))
 
 
 K1 = interpolate.interp1d([0,1,5,10], [1,1,1.16,1.14])

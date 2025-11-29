@@ -132,7 +132,7 @@ class Environment():
                     + time.second
                     + time.microsecond * 1e-6)
         lst = sec / 3600. + long / 15.0
-        
+
         densities, temps = nrlmsise00.msise_model(self.date_time, h, lat, long, f107a, f107, ap, lst)
         winds = pyhwm2014.hwm14.hwm14(iyd=iyd, sec=sec, alt=h, glat=lat, glon=long, stl=lst, f107a=f107a, f107=f107, ap=[-1, ap])
         rho = densities[5] * 1000 #  mass density, kg/m^3

@@ -5,7 +5,7 @@
 
 from system_definition import *
 from efs_system_requirements import power_req
-
+from pressure_requirements import n2_prop_reqs
 
 ###
 # Geometry
