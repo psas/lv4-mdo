@@ -13,6 +13,7 @@ G_N (gravity)
 PUMP_EFF (pump efficiency)
 """
 
+from system_definition import *
 
 RtoD = EPSILON_PIPE / D_PIPE # Rougness to Diameter Ratio
 
