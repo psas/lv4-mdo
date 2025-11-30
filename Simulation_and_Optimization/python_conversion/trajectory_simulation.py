@@ -545,12 +545,48 @@ def trajectory(fin_staging, stage_drop_ECEF, stage_root, stage_tip, stage_sweep,
 print(M_PROP, MDOT)
 
 if __name__ == '__main__':
-    test_run = trajectory(False, 0, 0, 0, 0, 0, 0, 0, M_PROP, 6.0758, 57563.9331, THROTTLE_WINDOW, MIN_THROTTLE, RCS_MDOT, RCS_P_E, RCS_P_CH,
-                          BALLAST, 0.4116, 0.1312, FIN_SWEEP_ANGLE, 0.5554, FIN_THICKNESS, CON_NOSE_L,
-                          LOX_TANK_P, IPA_TANK_P, RIB_T, NUM_RADL_DVSNS, AIRFRM_IN_RAD,
-                          IPA_WT, OF, ENG_P_CH, ENG_T_CH, ENG_KE, ENG_MM,
-                          [0, 0, AZ_PERTURB, EL_PERTURB, False, 0, 0, 0, 0, 0, 0, True],
-                          0.025, True, 0.005, True, False, False)
+
+    test_run = trajectory(fin_staging=False, 
+                          stage_drop_ECEF=0, 
+                          stage_root=0, 
+                          stage_tip=0, 
+                          stage_sweep=0, 
+                          stage_span=0, 
+                          stage_thickness=0, 
+                          mass_red=0, 
+                          m_prop=M_PROP, 
+                          mdot=6.0758, 
+                          p_e=57563.9331, 
+                          throttle_window=THROTTLE_WINDOW, 
+                          min_throttle=MIN_THROTTLE, 
+                          rcs_mdot=RCS_MDOT, # JUST FOR ROCKET 
+                          rcs_p_e=RCS_P_E, # JUST FOR ROCKET 
+                          rcs_p_ch=RCS_P_CH, # JUST FOR ROCKET
+                          ballast=BALLAST, # fin optimization stuff
+                          root=0.4116, # fin optimization stuff
+                          tip=0.1312, # fin optmization stuff
+                          sweep=FIN_SWEEP_ANGLE, # fin sweep angle for stuff
+                          span=0.5554, # fin span for other stuff
+                          thickness=FIN_THICKNESS, # fin thickness for other stuff
+                          con_nose_l=CON_NOSE_L, # JUST FOR ROCKET
+                          tank_p_o=LOX_TANK_P, # JUST FOR ROCKET
+                          tank_p_f=IPA_TANK_P, # JUST FOR ROCKET 
+                          rib_t=RIB_T, # JUST FOR ROCKET
+                          num_radl_dvsns=NUM_RADL_DVSNS, # JUST FOR ROCKET
+                          airfrm_in_rad=AIRFRM_IN_RAD, # JUST FOR ROCKET
+                          ipa_wt=IPA_WT, # propellant optimization for cea output
+                          of=OF, # propellant optimization for cea output
+                          p_ch=ENG_P_CH, # propellant optimization for cea output
+                          T_ch=ENG_T_CH, # JUST FOR ROCKET
+                          ke=ENG_KE, # JUST FOR ROCKET
+                          mm=ENG_MM, # JUST FOR ROCKET
+                          perturbations=[0, 0, AZ_PERTURB, EL_PERTURB, False, 0, 0, 0, 0, 0, 0, True],
+                          dt=0.025, 
+                          adaptive=True, 
+                          tol=0.005, 
+                          descend=True, 
+                          early_return=False, 
+                          recovery=False)
 
 
 

@@ -15,7 +15,6 @@ project_normal = np.identity(3) - np.outer(np.array([0,0,1]), np.array([0,0,1]))
 
 
 
-
 class AeroModel():
     def __init__(self, diameter, body_len, nose_len, fin):
         # kinematic viscosity of air

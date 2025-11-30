@@ -3,9 +3,12 @@
 # original credit to Julio, edits by Cory, clean up by Max
 
 
-from .system_definition import EPSILON_PIPE, D_PIPE, LFETS_PIPE_AREA, G_N, A_PIPE, K_L, PUMP_EFF, U_SS
+from .system_definition import G_N
+from .system_definition import EPSILON_PIPE, D_PIPE, LFETS_PIPE_AREA, A_PIPE, K_L, PUMP_EFF, U_SS
 
 import numpy as np
+
+
 
 RtoD = EPSILON_PIPE / D_PIPE # Rougness to Diameter Ratio
 
