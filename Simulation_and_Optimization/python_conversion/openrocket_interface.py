@@ -197,6 +197,11 @@ if __name__ == '__main__':
     #                      DT, False, 0.045, False, False)
 
     print('finished sim')
+
+    print(sim.LV4.launch_speed, "m/s")
+    print(sim.thrust[0], "N")
+
+
     textlist = print_results(sim, True)
     # draw pretty pictures of optimized trajectory
     # what is our stability???????

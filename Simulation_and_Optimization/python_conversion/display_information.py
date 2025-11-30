@@ -376,7 +376,7 @@ def phase_plot(m_prop, mdot_0, p_e):
     plt.show()
 
 # this function makes some nice plots of the phase space of design vectors
-def design_grapher(allvectors): # no arguments because I'm using dirty dirty global variables
+def design_grapher(allvectors, allobjfun):
     fig = plt.figure()
     ax = fig.add_subplot(111)
     ax.set_title('Objective + Constraint convergence')
