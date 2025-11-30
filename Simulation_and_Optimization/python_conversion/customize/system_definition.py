@@ -388,12 +388,12 @@ CONS_TANK_MIN = 689476 # Pa, minimum tank pressure (so FLIPS can use regulators)
 ################################################
 
 
-RKT_PREFIX = "../rocket_farm/" # the rockets live on a cute little farm upstate where they frolic in fields
+RKT_PREFIX = "./rocket_farm/" # the rockets live on a cute little farm upstate where they frolic in fields
 
 ## Utility Functions
 # unpack rocket template temporarily
 def unzip():
-    with ZipFile('../LV4_canonical/template.ork') as myzip:
+    with ZipFile('../../LV4_canonical/template.ork') as myzip:
         myzip.extract('rocket.ork')
 
 # package our new rocket and remove temporary template
