@@ -131,10 +131,10 @@ def f(x, n=8):
     sim = trajectory(fin_staging, 0, 0, 0, 0, 0, 0, 0, x[0], x[1], x[2],
                THROTTLE_WINDOW, MIN_THROTTLE,
                RCS_MDOT, RCS_P_E, RCS_P_CH,
-               7.8891, 0.44344, 0.1928, FIN_SWEEP_ANGLE, 0.44384, FIN_THICKNESS, CON_NOSE_L,
+               x[9], x[6], x[7], FIN_SWEEP_ANGLE, x[8], FIN_THICKNESS, CON_NOSE_L,
                 x[3], x[4], RIB_T, NUM_RADL_DVSNS,
                AIRFRM_IN_RAD, ipa_wt, of_ratio, x[5], Tc, gamma, MW,
-               [0, 0, AZ_PERTURB, EL_PERTURB, True, 0, 0, 0, 0, 0, 0, False],
+               [0, 0, AZ_PERTURB, EL_PERTURB, True, 0, 0, 0, 0, 0, 0, True],
                 0.025, True, 0.005, False, False, False)
 
     obj_func = (1 * objective(sim.LV4.GLOW, CONS_MASS))
@@ -248,8 +248,8 @@ if __name__ == '__main__':
 
     # simplicial homology
 
-    res = shgo(f, bounds=[*zip([75,2,86346/1.5, 805000/2,805000/2, 344738*1.5],
-                                [300,6,86346*1.5,2.068e6, 2.068e6, 4.137e6])],   # design vector boundaries
+    res = shgo(f, bounds=[*zip([75,2,86346/1.5, 805000/2,805000/2, 344738*1.5, 0.8, 0.5, 0.15, 8],
+                                [300,6,86346*1.5,2.068e6, 2.068e6, 4.137e6, 1.8, 0.9, 0.9, 40])],   # design vector boundaries
                    n=10, iters=1, sampling_method='simplicial',
                     #minimizer_kwargs={'method':'SLSQP', 'options':{'disp': True,'maxiter':250}},
                minimizer_kwargs={'method':'COBYLA', 'options':{'disp': True, 'adaptive':True, 'maxfev':500, 'xatol': 0.01, 'fatol': 0.05}},
@@ -272,7 +272,7 @@ if __name__ == '__main__':
         smaller_fin_sim = trajectory(fin_staging, 0, 0, 0, 0, 0, 0, 0, x[0], x[1], x[2],
                    THROTTLE_WINDOW, MIN_THROTTLE,
                    RCS_MDOT, RCS_P_E, RCS_P_CH,
-                   BALLAST, 0.762, 0.3302, FIN_SWEEP_ANGLE, 0.4064, 0.003175, CON_NOSE_L, #enter smaller fin parameters
+                   x[9], x[6], x[7], FIN_SWEEP_ANGLE, x[8], 0.003175, CON_NOSE_L, #enter smaller fin parameters
                     x[3], x[4], RIB_T, NUM_RADL_DVSNS,
                    AIRFRM_IN_RAD, ipa_wt, of_ratio, x[5], Tc, gamma, MW,
                    [0, 0, AZ_PERTURB, EL_PERTURB, False, 0, 0, 0, 0, 0, 0, True],
@@ -295,8 +295,8 @@ if __name__ == '__main__':
     sim = trajectory(fin_staging, drop_ECEF, 0, 0, 0, 0, 0, 0, x[0], x[1], x[2],
                THROTTLE_WINDOW, MIN_THROTTLE,
                RCS_MDOT, RCS_P_E, RCS_P_CH,
-               7.8891, 0.44344, 0.1928, FIN_SWEEP_ANGLE, 0.44384, FIN_THICKNESS, CON_NOSE_L, #enter larger fin parameters
-                x[3], x[4], RIB_T, NUM_RADL_DVSNS,
+               x[9], x[6], x[7], FIN_SWEEP_ANGLE, x[8], FIN_THICKNESS, CON_NOSE_L, #enter larger fin parameters
+               x[3], x[4], RIB_T, NUM_RADL_DVSNS,
                AIRFRM_IN_RAD, ipa_wt, of_ratio, x[5], Tc, gamma, MW,
                [0, 0, AZ_PERTURB, EL_PERTURB, True, 0, 0, 0, 0, 0, 0, False],
                           0.025, True, 0.005, False, False, False)

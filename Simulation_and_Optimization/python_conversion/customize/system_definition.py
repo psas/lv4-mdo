@@ -50,7 +50,7 @@ global PROPELLANT_SET
 
 PROPELLANT_SET = False
 
-from customize.propellant_optimization import propellant_optimizer
+from .propellant_optimization import propellant_optimizer
 if PROPELLANT_SET:
     ipa_wt, of_ratio, p_ch, Tc, MW, gamma, propellant_string = propellant_optimizer(2413166)
 
@@ -85,6 +85,8 @@ def Material(name, rho, mm=None, mu=None, Sy=None, Su=None, p_v=None):
 # https://www.aircraftspruce.com/catalog/cmpages/anh4120honeycomb01-01574.php?clickkey=5444217
 # note: i've calculated ~395 kg/m^3 for uniform airframe density based on our density/thickness estimates.
 #       however, measurement of LV3.1 module says module is around 130 kg/m^3. Not sure why these don't agree.
+
+# SOLIDS (only in structure model)
 NOMEX      = Material('Nomex', 48.06)
 CRYOGEL    = Material('Cryogel', 160)
 #FIBERGLASS = Material('Fiberglass', 1850, Sy=0.2068e9) # don't know where it came from
@@ -92,22 +94,27 @@ FIBERGLASS = Material('Fiberglass', 2460, Sy=0.2068e9) # from airframe team CAD
 ALUM       = Material('Aluminum 6061-T6', 2800.0, Sy=0.270e9, Su=0.31e9)
 #CFIBER     = Material('Carbon Fiber', 1550.0, Sy=0.450e9) # density from internet
 CFIBER     = Material('Carbon Fiber', 1990.0, Sy=0.450e9) # what airframe team uses for CAD
+
+# FLUIDS
 LOX        = Material('LOX', 1141.0, mu=0.000009, p_v=8000) # kg/m^3  Density of LOX
 #IPA        = Material('IPA/H20', 849.28) # kg/m^3  Density of 64.8% IPA / 35.2% H20
 IPA        = Material('IPA', 786) # kg/m^3  Density of 64.8% IPA / 35.2% H20
 H20        = Material('H20', 999.8) # kg/m^3  Density of 64.8% IPA / 35.2% H20
-FUEL       = Material('IPA/H20', 0.648* IPA['rho'] + 0.352 * H20['rho'],
-                     mu=0.00192, p_v=8840) # kg/m^3  Density of 64.8% IPA / 35.2% H20
+#FUEL       = Material('IPA/H20', 0.648* IPA['rho'] + 0.352 * H20['rho'],
+#                     mu=0.00192, p_v=8840) # kg/m^3  Density of 64.8% IPA / 35.2% H20
+
 # Nitrogen characteristics
 # https://github.com/psas/reaction-control/blob/master/pubs/AIAA%20RCS%20Manuscript_FINAL2.pdf
 N2_TEMP = 298.15 # K, holding this constant is sketchy but easy
 N2_MM   = 28.01 # nitrogen molecular mass [g/mol]
 N2_KE   = 1.4 # nitrogen specific heat ratio
+N2_Z    = 0.95 # nitrogen compressibility, CHECK
 
 # Helium characteristics
 HE4_TEMP = 298.15 # K
 HE4_MM   = 4.003 # g/mol
-HE4_KE   = 1.66
+HE4_KE   = 1.66 # specific heat ratio
+
 
 ENG_P_CH = 783649.1830 # chamber pressure, PSI
 
@@ -121,10 +128,13 @@ if not PROPELLANT_SET:
         ENG_T_CH = 3097.82 # chamber temperature, K
         ENG_KE   = 1.1251 # specific heat ratio, propellant (aka gammas)
         ENG_MM   = 23.196 # molar mass
+
+
+
     else:
         IPA_WT, OF, ENG_P_CH, ENG_T_CH, ENG_MM, ENG_KE, _ = propellant_optimizer(ENG_P_CH)
-        FUEL       = Material('IPA/H20', IPA_WT/100* IPA['rho'] + (100 - IPA_WT)/100 * H20['rho'],
-                             mu=0.00192, p_v=8840) # kg/m^3  Density of 64.8% IPA / 35.2% H20
+        #FUEL       = Material('IPA/H20', IPA_WT/100* IPA['rho'] + (100 - IPA_WT)/100 * H20['rho'],
+        #                     mu=0.00192, p_v=8840) # kg/m^3  Density of 64.8% IPA / 35.2% H20
 
 
 
@@ -137,9 +147,13 @@ if not PROPELLANT_SET:
 
 # Launch constants
 # Vertical Launch at Alkali Lake
+
+# used in trajectory simulation and passed to environment
 LAUNCH_SITE_ALT = 1299 # m, altitude of launch site above sea level, from freemaptools.com/elevation-finder.htm
 LAUNCH_TOWER    = 9.8 # launch rail height in m
 LAUNCH_SITE_LOC = [42.977691975376736, -120.02818928644571] # dec deg N, E from google maps
+
+# only for launch locations (trajectory, monte carlo, MDO)
 AZ_PERTURB = 1
 EL_PERTURB = 0.3421796303215663
 
@@ -149,6 +163,7 @@ EL_PERTURB = 0.3421796303215663
 ### isogrid parameters
 ################################################
 
+# for creating rocket
 TANK_IN_DIA     = 11.5 * M_PER_IN # propellant tank inner diameter, m
 TANK_IN_RAD     = TANK_IN_DIA * 0.5 # propellant tank inner radius, m
 TANK_THICK      = 0.25 * M_PER_IN # propellant tank thickness, m
@@ -169,6 +184,7 @@ NUM_RADL_DVSNS  = 24 # number of triangles
 ### rocket parameters
 ################################################
 
+# for rocket
 CPLNG_RING_THK     = 0.00635 # m
 INNER_CF_THK       = 0.015 * M_PER_IN # m
 NOMEX_THK          = 0.125 * M_PER_IN # m
@@ -186,6 +202,7 @@ BALLAST         = 2
 ### fin geometry
 ################################################
 
+# for rocket
 FIN_ROOT        = 30 * M_PER_IN #0.7 # Root length, m
 FIN_TIP         = 13 * M_PER_IN #0.45 # tip length, m
 FIN_SEMISPAN    = 16 * M_PER_IN #0.4 # fin span/height, m
@@ -214,6 +231,8 @@ N2_TANK_OR  = 0.0825 # m, tank outer radius
 ### upper subsystem module dimensions
 ################################################
 # if these change you will have to make changes in structure.ipynb
+
+# for rocket
 CPLNG_RING_THK     = 0.00635 # m
 INNER_CF_THK       = 0.015 * M_PER_IN # m
 NOMEX_THK          = 0.125 * M_PER_IN # m
@@ -252,6 +271,7 @@ L_ENGINE           = 0.300        # m
 ### piping
 ################################################
 
+# some of these may be used for pressure requirements
 PIPE_THK      = 0.065 * M_PER_IN
 N2_PIPE_OD    = 0.5 * M_PER_IN
 FUEL_PIPE_OD  = 0.75 * M_PER_IN *1.5
@@ -279,8 +299,8 @@ MOT_SPEC_POW       = 0.4 * 9800 / (2.53 + 0.406) # W/kg, motor + ESC
 LOX_TANK_P         = 1859818.5060 # Pa, lox tank pressure
 IPA_TANK_P         = 1530286.4229 # Pa, ipa tank pressure
 D_PIPE             = FUEL_PIPE_IR * 2 #0.0157  # m Plumbing Pipe Diameter
-A_PIPE             = np.pi/4 * D_PIPE**2 # m^2 Cross Sectional Area of Plumbing Pipe
-EPSILON_PIPE       = 1.5 *10**(-6) # m Drawn Tubing Relative Roughness
+#A_PIPE             = np.pi/4 * D_PIPE**2 # m^2 Cross Sectional Area of Plumbing Pipe
+#EPSILON_PIPE       = 1.5 *10**(-6) # m Drawn Tubing Relative Roughness
 PLUMBING_L_F       = 2.692 # m Length of Straight Pipe Section IPA
 PLUMBING_L_O       = 1.046 # m Length of Straight Pipe Section LOX
 UNDER_N2_M         = 6 # kg, FLIPS stuff here
@@ -297,7 +317,7 @@ DELP_REGEN         = 0 #1.379 * 10**6 # Pa Guessed pressure loss from regenerati
 DELP_INJ_F         = 344.8588707*1000 # Pa Experimental Pressure Loss across Pintle
 DELP_INJ_O         = 689.5*1000 # Pa Experimental Pressure Loss across Pintle
 
-LFETS_PIPE_AREA    = np.pi * FUEL_PIPE_IR**2
+#LFETS_PIPE_AREA    = np.pi * FUEL_PIPE_IR**2
 
 REGEN_F_COEFF = 0.07 # regen channel fric coeff (per Emilio)
 REGEN_D       = 3e-3  # m, regen channel hydraulic diameter
@@ -312,8 +332,9 @@ REGEN_MULT    = REGEN_F_COEFF * REGEN_L / (REGEN_D * 2)
 ################################################
 
 # drag coefficients of parachutes
-C_D_DROGUE = 0.97 # from rocketman
-C_D_MAIN = 2.2 # from rocketman
+# currently hardcoded in aerodynamics module
+#C_D_DROGUE = 0.97 # from rocketman
+#C_D_MAIN = 2.2 # from rocketman
 
 
 
@@ -423,7 +444,7 @@ def get_index():
 
 
 ################################################
-### quaternion helper functions
+### helper functions
 ################################################
 
 
@@ -434,7 +455,11 @@ def proportion(amount, OF):
     stuff_f = amount * 1/(1 + OF)
     return stuff_o, stuff_f
 
+
+
+# these may have already been moved to aerodynamics and environment
 # this is hamilton's quaternion product
+"""
 def product(a, b):
     v = b[0] * a[1:] + a[0] * b[1:] + np.cross(a[1:], b[1:])
     return np.array([a[0] * b[0] - np.dot(a[1:], b[1:]), v[0], v[1], v[2]])
@@ -456,7 +481,7 @@ def normalize(q):
     norm = np.linalg.norm(q)
     norm = norm if norm !=0 else 1
     return q / norm
-
+"""
 def eulerangle_to_quat(RA, dec, orientation):
     '''Encodes star tracker's attitude representation as a quaternion in
     3-2-1 order (yaw, pitch, roll). This quaternion transforms the inertial frame to the body frame.

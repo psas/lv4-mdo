@@ -5,13 +5,13 @@ PROPELLANT_SET = False
 
 from customize.system_definition import *
 from customize.propellant_optimization import get_propellant_properties
-from structural_model import *
-from structural_analysis import *
+from customize.structural_model import *
+from customize.structural_analysis import *
 # from fin_staging import *
 
-
-from models.environment_model import *
-from models.aerodynamics_model import *
+from models.quaternions import *
+from models.environment_model import Environment
+from models.aerodynamics_model import AeroModel
 from models.thermodynamics import *
 
 import display_information as disp_info
@@ -531,7 +531,7 @@ def trajectory(fin_staging, stage_drop_ECEF, stage_root, stage_tip, stage_sweep,
     sim.tip_off_aoa = np.degrees(max([state[1][1][5][5] for state in states[sim.tower_index:sim.maxq_index]]))
     sim.rcs_impulse_budget = LV4.delta_ang_mom / (LV4.rcs_sys.CoM[2] - LV4.CoM[2])
     sim.rcs_design_thrust = 0.5 * sim.rcs_impulse_budget / sim.t[sim.ap_index]
-    sim.design_n2_mass = 1.5 * (sim.rcs_impulse_budget / (2 * LV4.rcs_sys.Ve) + n2_prop_reqs(sim.LV4))
+    sim.design_n2_mass = 1.5 * (sim.rcs_impulse_budget / (2 * LV4.rcs_sys.Ve) + n2_prop_reqs(sim.LV4, N2_TEMP, 0.95, N2_MM, R_UNIV))
     sim.design_n2_tank_volume = sim.design_n2_mass * R_UNIV * LV4.rcs_sys.tank.T_tank / (LV4.rcs_sys.tank.mm * LV4.rcs_tank.p_0)
     sim.max_stag_temp = max([state[0][5] for state in states[1:]])
 

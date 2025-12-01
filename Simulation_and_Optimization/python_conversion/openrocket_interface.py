@@ -18,8 +18,7 @@ Be aware that I have not yet tested this in Windows or MACOSX, or outside of Ubu
 """
 
 from customize.system_definition import *
-from trajectory_simulation import trajectory
-from display_information import *
+
 
 # create a rocket file for our engine's dimensions and characteristics
 def update_body(index, out_r, l_o, l_f, ballast, fin):
@@ -140,6 +139,11 @@ def make_engine(mdot, prop_mass, Thrust,
 
 
 if __name__ == '__main__':
+    # only for example
+    from trajectory_simulation import trajectory
+    from display_information import *
+
+
     m_prop    = X0[0]
     mdot = X0[1]
     p_e  = X0[2]

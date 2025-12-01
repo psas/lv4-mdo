@@ -19,7 +19,6 @@ PROPELLANT_SET=False
 
 
 
-# 
 allvectors = []               # array for all design vecs, global variable
 allobjfun = []                # array for tracking objective function evaluations
 

@@ -1,7 +1,7 @@
 
 # from system_definition import *
 
-from structural_model import *
+from .structural_model import *
 
 """
 This function is for calculating static loads and bending moments on the fly. We aren't yet doing anything with this information, but it will eventually be necessary to vet our structural designs for safety as we get closer to actual engineering work. I'm still not sure of the best way to explain what is happening here, but worked from examples given to me by A. Fung which are in the Google Drive.

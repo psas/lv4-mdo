@@ -3,9 +3,9 @@
 
 # hey, welcome to one of the silliest parts of the script
 
-from customize.system_definition import * # about half of system definition is just for this module
-from customize.efs_requirements import power_req
-from customize.pressure_requirements import n2_prop_reqs
+from .system_definition import * # about half of system definition is just for this module
+from .efs_requirements import power_req
+from .pressure_requirements import n2_prop_reqs
 
 import numpy as np
 ###
@@ -249,6 +249,7 @@ class Structure:
     
     def add_part(self, name, material, length, radius, thickness, shape, 
                  height_coord, x_coord=0, y_coord=0, mass=0, prepend=False):
+        """wait a minute, why don't we just make the part a component and then add component?"""
         coords = np.array([x_coord, y_coord, height_coord])
         if prepend:
             self.parts.insert(0, Component(name, material, length, radius, thickness, shape, mass))
@@ -474,23 +475,32 @@ def create_rocket(mprop, mdot, p_e,
     rocket.unadjusted_mprop = mprop
     fuel = Material('IPA/H20', ipa_wt/100* IPA['rho'] + (100 - ipa_wt)/100 * H20['rho'],
                              mu=0.00192, p_v=8840) # kg/m^3  Density of 64.8% IPA / 35.2% H20
+    
+    # system definition function
     mdot_o, mdot_f = proportion(mdot, of)
     m_o, m_f  = proportion(mprop, of)
+    
+    # fuel and coolant properties
     coolant = m_f * 0.06
     burntime = mprop / mdot
     rocket.mdot_c = coolant / burntime
     m_f += coolant
     rocket.residual_o = 0.02 * m_o
     rocket.residual_f = 0.02 * m_f
+
+    # initial dimensions
     out_rad   = airfrm_in_rad + AIRFRAME_THICKNESS
     height    = 0
     
+    # isogrid
     rocket.rib_t = rib_t
     rocket.num_radl_dvsns = num_radl_dvsns
     cell_height     = TANK_OD * np.pi / num_radl_dvsns
     alpha           = (rib_t * RIB_DEPTH) / (SKIN_T * cell_height) # Web non-dimensional ratio, pg. 2.0.008
     beta            = (3 * alpha * (1 + DELTA)**2 + (1 + alpha) * (1 + alpha * DELTA**2))**0.5
     t_star          = SKIN_T * beta / (1 + alpha) # equivilent monocoque thickness, Eq. 2.5.3
+    
+    # tank properties
     rocket.TANK_EQV_WT_T   = SKIN_T * (1 + 3 * alpha) # tank equivalent weight thickness, m
     rocket.TANK_MAX_P      = 0.666 * ALUM['Su'] * SKIN_T * (1 + alpha) / TANK_IN_RAD # Pa, prop tank max pressure
     
@@ -506,18 +516,75 @@ def create_rocket(mprop, mdot, p_e,
     def gen_fin(name):
         """Generates a fin with a given name. Pass object to create_rocket in the future"""
         return Fin(name, ALUM, root, tip, sweep, span, thickness)
-        
-    
-    # Add parts and structures
-    engine_subsystem = Structure('Engine Subsystem')
-    engine_subsystem.add_structure(Module('Fin Can Module', CFIBER, FIN_CAN_L, airfrm_in_rad, 
-                                          height+THRST_PLT+HALF_CPL_RING))
-    engine_subsystem.parts[-1].add_part('Thrust Plate', ALUM, THRST_PLT, 0.0254, airfrm_in_rad - 0.0254, 'Shell',
-                                       height)
-    engine_subsystem.parts[-1].add_component(cpl_ring(0.5), height+THRST_PLT)
-    engine_subsystem.parts[-1].add_part('Launch Button', 0.2051, 0.02, 0, 0, 'Point',
-                                       height+THRST_PLT, x_coord=-out_rad)
 
+
+    # trying some module stuff
+
+    # for reference
+
+    #engine_subsystem.add_structure(Module('Fin Can Module', CFIBER, FIN_CAN_L, airfrm_in_rad, height+THRST_PLT+HALF_CPL_RING))
+    #rocket.add_structure(Module('Engine Passthru Module', ALUM, PAS_L, airfrm_in_rad, height+THREE_QTR_CPL_RING, mono_thickness=AIRFRAME_THICKNESS, wt_thickness=AIRFRAME_THICKNESS))
+    #rocket.add_structure(Module('1st Tank Passthru Module', ALUM, PAS_L, airfrm_in_rad, height+HALF_CPL_RING, mono_thickness=AIRFRAME_THICKNESS, wt_thickness=AIRFRAME_THICKNESS))
+    #rocket.add_structure(Module('1st Propulsion MicroModule', CFIBER, MICRO_L, airfrm_in_rad, height+THREE_QTR_CPL_RING))
+    #rocket.add_structure(Module('2nd Tank Passthru Module', ALUM, PAS_L, airfrm_in_rad, height+THREE_QTR_CPL_RING, mono_thickness=AIRFRAME_THICKNESS, wt_thickness=AIRFRAME_THICKNESS))
+    #rocket.add_structure(Module('3rd Tank Passthru Module', ALUM, PAS_L, airfrm_in_rad, height+HALF_CPL_RING, mono_thickness=AIRFRAME_THICKNESS, wt_thickness=AIRFRAME_THICKNESS))
+    #rocket.add_structure(Module('2nd Propulsion MicroModule', CFIBER, MICRO_L, airfrm_in_rad, height+THREE_QTR_CPL_RING))
+    #rocket.add_structure(Module('4th Tank Passthru Module', ALUM, PAS_L, airfrm_in_rad, height+THREE_QTR_CPL_RING, mono_thickness=AIRFRAME_THICKNESS, wt_thickness=AIRFRAME_THICKNESS))
+    #rocket.add_structure(Module('AV Module', FIBERGLASS, AV_L, airfrm_in_rad, height+THREE_QTR_CPL_RING))
+    #rocket.add_structure(Module('CAM/N2 Passthru Module', ALUM, CAM_L, airfrm_in_rad, height+THREE_QTR_CPL_RING, mono_thickness=AIRFRAME_THICKNESS, wt_thickness=AIRFRAME_THICKNESS))
+    #rocket.add_structure(Module('N2 Module', CFIBER, N2_L, airfrm_in_rad, height+THREE_QTR_CPL_RING))
+    #rocket.add_structure(Module('RCS Module', ALUM, RCS_L, airfrm_in_rad, height+THREE_QTR_CPL_RING, mono_thickness=AIRFRAME_THICKNESS, wt_thickness=AIRFRAME_THICKNESS))
+    #rocket.add_structure(Module('ERS Module', ALUM, ERS_L, airfrm_in_rad, height+HALF_CPL_RING, mono_thickness=AIRFRAME_THICKNESS, wt_thickness=AIRFRAME_THICKNESS))
+
+    # eventually lets get everything in a config file, first step is to get everything into a dictionary
+    # note that 'height' has to be extended to the dictionary since it changed dynamically
+    # there is also a nosecone, but that is a special type of module
+    module_kwargs = {
+            'Fin Can Module': {'name': 'Fin Can Module', 'material': CFIBER, 'length': FIN_CAN_L, 'radius': airfrm_in_rad},
+                # thrust plate, .5 ring, launch button, 4 fins
+            'Engine Passthru Module': {'name': 'Engine Passthru Module', 'material': ALUM, 'length': PAS_L, 'radius': airfrm_in_rad, 'mono_thickness': AIRFRAME_THICKNESS, 'wt_thickness': AIRFRAME_THICKNESS},
+                # .75 ring launch button, n2 to eng pipe, ipa to eng pipe, lug1?
+                # then there is a whole tank
+            '1st Tank Passthru Module': {'name': '1st Tank Passthru Module', 'material': ALUM, 'length': PAS_L, 'radius': airfrm_in_rad, 'mono_thickness': AIRFRAME_THICKNESS, 'wt_thickness': AIRFRAME_THICKNESS},
+                # .5 ring, plumbing, launch button, n2 to lox pipe
+            '1st Propulsion MicroModule': {'name': '1st Propulsion MicroModule', 'material': CFIBER, 'length': MICRO_L, 'radius': airfrm_in_rad},
+                # .75 ring
+            '2nd Tank Passthru Module': {'name': '2nd Tank Passthru Module', 'material': ALUM, 'length': PAS_L, 'radius': airfrm_in_rad, 'mono_thickness': AIRFRAME_THICKNESS, 'wt_thickness': AIRFRAME_THICKNESS},
+                # .75 ring, EFS to tank
+            '3rd Tank Passthru Module': {'name': '3rd Tank Passthru Module', 'material': ALUM, 'length': PAS_L, 'radius': airfrm_in_rad, 'mono_thickness': AIRFRAME_THICKNESS, 'wt_thickness': AIRFRAME_THICKNESS},
+                # .5 ring, plumbing, n2 to ipa pipe (shell)
+            '2nd Propulsion MicroModule': {'name': '2nd Propulsion MicroModule', 'material': CFIBER, 'length': MICRO_L, 'radius': airfrm_in_rad},
+                # .75 ring
+            '4th Tank Passthru Module': {'name': '4th Tank Passthru Module', 'material': ALUM, 'length': PAS_L, 'radius': airfrm_in_rad, 'mono_thickness': AIRFRAME_THICKNESS, 'wt_thickness': AIRFRAME_THICKNESS},
+                # .75 ring
+            'AV Module': {'name': 'AV Module', 'material': FIBERGLASS, 'length': AV_L, 'radius': airfrm_in_rad},
+                # .75 ring, av/360 module (blob)
+            'CAM/N2 Passthru Module': {'name': 'CAM/N2 Passthru Module', 'material': ALUM, 'length': CAM_L, 'radius': airfrm_in_rad, 'mono_thickness': AIRFRAME_THICKNESS, 'wt_thickness': AIRFRAME_THICKNESS},
+                # .75 ring, plumbing (point), cameras (blob)
+            'N2 Module': {'name': 'N2 Module', 'material': CFIBER, 'length': N2_L, 'radius': airfrm_in_rad},
+                # the N2 module may need extra modifications since it depends on updates
+                # .75 ring, N2 tank (n2 tank)
+            'RCS Module': {'name': 'RCS Module', 'material': ALUM, 'length': RCS_L, 'radius': airfrm_in_rad, 'mono_thickness': AIRFRAME_THICKNESS, 'wt_thickness': AIRFRAME_THICKNESS},
+                # .75 ring, rcs engine (engine)
+            'ERS Module': {'name': 'ERS Module', 'material': ALUM, 'length': ERS_L, 'radius': airfrm_in_rad, 'mono_thickness': AIRFRAME_THICKNESS, 'wt_thickness': AIRFRAME_THICKNESS},
+                # .5 ring, ERS module (blob)
+            }
+
+
+
+
+    # ENGINE: Add parts and structures
+    # engine subsystem components is recorded before adding to rocket so that its mass can be calulated seperately
+    engine_subsystem = Structure('Engine Subsystem')
+    # engine_subsystem.add_structure(Module('Fin Can Module', CFIBER, FIN_CAN_L, airfrm_in_rad, height+THRST_PLT+HALF_CPL_RING))
+    module_kwargs['Fin Can Module'].update({'height_coord': height+THRST_PLT+HALF_CPL_RING}) 
+    engine_subsystem.add_structure(Module(**(module_kwargs['Fin Can Module'])))
+    # add stuff, apparently don't update the height yet
+    engine_subsystem.parts[-1].add_part('Thrust Plate', ALUM, THRST_PLT, 0.0254, airfrm_in_rad - 0.0254, 'Shell', height)
+    engine_subsystem.parts[-1].add_component(cpl_ring(0.5), height+THRST_PLT)
+    engine_subsystem.parts[-1].add_part('Launch Button', 0.2051, 0.02, 0, 0, 'Point', height+THRST_PLT, x_coord=-out_rad)
+
+    # Add the fins
     fin_set = Structure('Fins')
     fin_set.add_component(gen_fin('Front'), height+FIN_ROOT_HEIGHT, y_coord=out_rad)
     fin_set.add_component(gen_fin('Back'), height+FIN_ROOT_HEIGHT, y_coord=-out_rad)
@@ -525,133 +592,206 @@ def create_rocket(mprop, mdot, p_e,
     fin_set.add_component(gen_fin('Right'), height+FIN_ROOT_HEIGHT, x_coord=-out_rad)
     rocket.fin = fin_set.parts[0]
     engine_subsystem.parts[-1].add_structure(fin_set)
-    
+
+    # add the engine to the subsystem
     engine_subsystem.parts[-1].add_engine(mdot, p_e, p_ch, T_ch, ke, mm, throttle_window, min_throttle, height - ENG_CLEARANCE)
-    rocket.engine    = engine_subsystem.parts[-1].parts[-1] # for convenience
+    # save engine as attribute for convenience
+    rocket.engine    = engine_subsystem.parts[-1].parts[-1]
     if USE_EFS:
-        engine_subsystem.parts[-1].add_part('EMS', ALUM, 0.1016, 0.041, 0, 'Blob',
-                                           L_ENGINE)
-        engine_subsystem.parts[-1].add_part('EFS Plumbing', PLUMBING_M, L_FEED, 0, 0, 'Point',
-                                           L_ENGINE+L_EMS)
+        engine_subsystem.parts[-1].add_part('EMS', ALUM, 0.1016, 0.041, 0, 'Blob', L_ENGINE)
+        engine_subsystem.parts[-1].add_part('EFS Plumbing', PLUMBING_M, L_FEED, 0, 0, 'Point', L_ENGINE+L_EMS)
     efs_height       = L_ENGINE + L_EMS + 0.5 * L_FEED
     fin_can_module   = engine_subsystem.parts[-1]
-    
+    # add the engine to the rocket
     rocket.add_structure(engine_subsystem.parts[-1])
-    
-    
+    # update height to top of fin can
     height += THRST_PLT + HALF_CPL_RING + FIN_CAN_L
     
+
+
+
+    # ENGINE PASSTHRU MODULE
     #rocket.add_structure(Module(np.array([0, 0, height+ THREE_QTR_CPL_RING]), 'Engine Passthru Module', ALUM, PAS_L, airfrm_in_rad, 'Shell', t_star, rocket.TANK_EQV_WT_T))
-    rocket.add_structure(Module('Engine Passthru Module', ALUM, PAS_L, airfrm_in_rad, height+THREE_QTR_CPL_RING,
-                                mono_thickness=AIRFRAME_THICKNESS, wt_thickness=AIRFRAME_THICKNESS))
+    #rocket.add_structure(Module('Engine Passthru Module', ALUM, PAS_L, airfrm_in_rad, height+THREE_QTR_CPL_RING, mono_thickness=AIRFRAME_THICKNESS, wt_thickness=AIRFRAME_THICKNESS))
+    module_kwargs['Engine Passthru Module'].update({'height_coord': height+THREE_QTR_CPL_RING}) 
+    rocket.add_structure(Module(**module_kwargs['Engine Passthru Module']))
     rocket.parts[-1].add_component(cpl_ring(0.75), height)
     height += THREE_QTR_CPL_RING
-    rocket.parts[-1].add_part('Launch Button', 0.2051, 0.02, 0, 0, 'Point',
-                             height, x_coord=-out_rad)
-    rocket.parts[-1].add_part('N2 to Eng Pipe', ALUM, N2_TO_ENG_L, N2_PIPE_IR, PIPE_THK, 'Shell', 
-                              height, x_coord=-out_rad) # 1 in OD, 1/8th in thick
-    rocket.parts[-1].add_part('IPA to Eng Pipe', ALUM, IPA_TO_ENG_L, FUEL_PIPE_IR, PIPE_THK, 'Shell', 
-                              height, x_coord=out_rad) # 1 in OD, 1/8th in thick
-    lug_1 = height + 0.5 * PAS_L 
+    # add middle parts here
+    rocket.parts[-1].add_part('Launch Button', 0.2051, 0.02, 0, 0, 'Point', height, x_coord=-out_rad)
+    rocket.parts[-1].add_part('N2 to Eng Pipe', ALUM, N2_TO_ENG_L, N2_PIPE_IR, PIPE_THK, 'Shell', height, x_coord=-out_rad) # 1 in OD, 1/8th in thick
+    rocket.parts[-1].add_part('IPA to Eng Pipe', ALUM, IPA_TO_ENG_L, FUEL_PIPE_IR, PIPE_THK, 'Shell', height, x_coord=out_rad) # 1 in OD, 1/8th in thick
+    # record first lug height
+    lug_1 = height + 0.5 * PAS_L
+    # update height after passthrough module
     height += PAS_L
-    
+
+
+
+
+    # TANK MODULE
     engine_subsystem.add_structure(Tank(ALUM, TANK_IN_RAD, t_star, rocket.TANK_EQV_WT_T, m_o, LOX, tank_p_o, height+HALF_CPL_RING))
     engine_subsystem.parts[-1].add_component(cpl_ring(0.5), height, prepend=True)
     height += HALF_CPL_RING
+    # add middle parts here
     rocket.m_tank_o = engine_subsystem.parts[-1].dry_m
     rocket.l_o      = engine_subsystem.parts[-1].length
     rocket.lox_tank = engine_subsystem.parts[-1] # for convenience
+    # here is something
     rocket.add_structure(engine_subsystem.parts[-1])
+    # record lox height
     surface_height_lox = height + rocket.lox_tank.parts[-1].length
+    # add the tank height...
     height += rocket.l_o
-    
+
+
+
+
+    # FIRST TANK PASSTHROUGH
     #rocket.add_structure(Module(np.array([0, 0, height+HALF_CPL_RING]), 'Tank Passthru Module', ALUM, PAS_L, airfrm_in_rad, 'Shell', t_star, rocket.TANK_EQV_WT_T))
-    rocket.add_structure(Module('1st Tank Passthru Module', ALUM, PAS_L, airfrm_in_rad, height+HALF_CPL_RING, 
-                                mono_thickness=AIRFRAME_THICKNESS, wt_thickness=AIRFRAME_THICKNESS))
+    #rocket.add_structure(Module('1st Tank Passthru Module', ALUM, PAS_L, airfrm_in_rad, height+HALF_CPL_RING, mono_thickness=AIRFRAME_THICKNESS, wt_thickness=AIRFRAME_THICKNESS))
+    module_kwargs['1st Tank Passthru Module'].update({'height_coord': height+HALF_CPL_RING}) 
+    rocket.add_structure(Module(**module_kwargs['1st Tank Passthru Module']))
     rocket.parts[-1].add_component(cpl_ring(0.5), height)
     height += HALF_CPL_RING
-    rocket.parts[-1].add_part('Plumbing', BETWEEN_TANKS_M, 0.02, 0, 0, 'Point',
-                             height)
-    rocket.parts[-1].add_part('Launch Button', 0.2051, 0.02, 0, 0, 'Point',
-                             height, x_coord=-out_rad)
-    rocket.parts[-1].add_part('N2 to LOX Pipe', ALUM, N2_TO_LOX_L, N2_PIPE_IR, PIPE_THK, 'Shell',
-                             height, y_coord=out_rad) # 1 in OD, 1/8th in thick
+    # add middle parts here
+    rocket.parts[-1].add_part('Plumbing', BETWEEN_TANKS_M, 0.02, 0, 0, 'Point', height)
+    rocket.parts[-1].add_part('Launch Button', 0.2051, 0.02, 0, 0, 'Point', height, x_coord=-out_rad)
+    rocket.parts[-1].add_part('N2 to LOX Pipe', ALUM, N2_TO_LOX_L, N2_PIPE_IR, PIPE_THK, 'Shell', height, y_coord=out_rad) # 1 in OD, 1/8th in thick
+    # record second lug height as midpoint
     lug_2 = height + 0.5 * PAS_L
+    # update height to top of module
     height += PAS_L
-    
-    rocket.add_structure(Module('1st Propulsion MicroModule', CFIBER, MICRO_L, airfrm_in_rad,
-                               height+THREE_QTR_CPL_RING))
+
+
+
+
+    # PROPULSION MICROMODULE
+    #rocket.add_structure(Module('1st Propulsion MicroModule', CFIBER, MICRO_L, airfrm_in_rad, height+THREE_QTR_CPL_RING))
+    module_kwargs['1st Propulsion MicroModule'].update({'height_coord': height+THREE_QTR_CPL_RING}) 
+    rocket.add_structure(Module(**module_kwargs['1st Propulsion MicroModule']))
     rocket.parts[-1].add_component(cpl_ring(0.75), height)
-    # three quarter, prepend false 
-    height += THREE_QTR_CPL_RING + MICRO_L
-    
-    rocket.add_structure(Module('2nd Tank Passthru Module', ALUM, PAS_L, airfrm_in_rad, height+THREE_QTR_CPL_RING, 
-                                mono_thickness=AIRFRAME_THICKNESS, wt_thickness=AIRFRAME_THICKNESS))
+    height += THREE_QTR_CPL_RING 
+    # add middle stuff here
+    height += MICRO_L
+
+
+
+
+    # SECOND TANK PASSTHROUGH
+    #rocket.add_structure(Module('2nd Tank Passthru Module', ALUM, PAS_L, airfrm_in_rad, height+THREE_QTR_CPL_RING, mono_thickness=AIRFRAME_THICKNESS, wt_thickness=AIRFRAME_THICKNESS))
+    module_kwargs['2nd Tank Passthru Module'].update({'height_coord': height+THREE_QTR_CPL_RING}) 
+    rocket.add_structure(Module(**module_kwargs['2nd Tank Passthru Module']))
     rocket.parts[-1].add_component(cpl_ring(0.75), height)
-    # three quarter, prepend false
-    height += THREE_QTR_CPL_RING + PAS_L
-    
+    height += THREE_QTR_CPL_RING 
+    # add middle parts here
+    # update height to top of module
+    height += PAS_L
+
+
+
+
     # ADD THE LOX TANK
-    engine_subsystem.add_structure(Tank(ALUM, TANK_IN_RAD, t_star, 
-                                        rocket.TANK_EQV_WT_T, m_f, fuel, tank_p_f, height+HALF_CPL_RING))
+    engine_subsystem.add_structure(Tank(ALUM, TANK_IN_RAD, t_star, rocket.TANK_EQV_WT_T, m_f, fuel, tank_p_f, height+HALF_CPL_RING))
     engine_subsystem.parts[-1].add_component(cpl_ring(0.5), height, prepend=True)
     height += HALF_CPL_RING
+    # add middle parts here
     rocket.m_tank_f = engine_subsystem.parts[-1].dry_m
     rocket.l_f      = engine_subsystem.parts[-1].length
     rocket.ipa_tank = engine_subsystem.parts[-1] # for convenience
+    # add the structure
     rocket.add_structure(engine_subsystem.parts[-1])
+    # save the ipa height
     surface_height_ipa = height + rocket.ipa_tank.parts[-1].length
     height += rocket.l_f
-    
-    # ADD THE EFS TO THE TANK
+    # efs stuff
     rocket.delp_regen = REGEN_MULT / fuel['rho'] * (mdot_f/(REGEN_N * np.pi * 0.25 * REGEN_D**2))**2
-    rocket.v_lfets_o, rocket.p_out_o, rocket.pow_o, rocket.rpm_o = power_req(p_ch, mdot_o, LOX, tank_p_o, FRIC_O, PLUMBING_L_O, DELP_INJ_O, surface_height_lox-efs_height)
-    rocket.v_lfets_f, rocket.p_out_f, rocket.pow_f, rocket.rpm_f = power_req(p_ch, mdot_f, fuel, tank_p_f, FRIC_F, PLUMBING_L_F, DELP_INJ_F + rocket.delp_regen, surface_height_ipa-efs_height)
+    rocket.v_lfets_o, rocket.p_out_o, rocket.pow_o, rocket.rpm_o = power_req(p_ch, mdot_o, LOX, tank_p_o, FRIC_O, PLUMBING_L_O, DELP_INJ_O, surface_height_lox-efs_height, D_PIPE, PUMP_EFF, K_L, U_SS, G_N) # may need to modify gravity if accelerating
+    rocket.v_lfets_f, rocket.p_out_f, rocket.pow_f, rocket.rpm_f = power_req(p_ch, mdot_f, fuel, tank_p_f, FRIC_F, PLUMBING_L_F, DELP_INJ_F + rocket.delp_regen, surface_height_ipa-efs_height, D_PIPE, PUMP_EFF, K_L, U_SS, G_N) # may need to modify gravity if accelerating
     total_pow = rocket.pow_o + rocket.pow_f
     efs_motors_m = total_pow / MOT_SPEC_POW 
     efs_bats_m   = 2 * total_pow / BAT_SPEC_POW
     if USE_EFS:
         fin_can_module.add_part('EFS 2 Motors/ESCs', efs_motors_m, L_FEED, 0, 0, 'Point', L_ENGINE+L_EMS)
         fin_can_module.add_part('EFS 4 Batteries', efs_bats_m, L_FEED, 0, 0, 'Point', L_ENGINE+L_EMS)
-    
-    
+    # save subsystem for conevenience
     rocket.eng_sys = engine_subsystem
     rocket.eng_sys.sum_parts()
-    
+
+
+
+
+    # THIRD TANK PASSTHROUGH
     #rocket.add_structure(Module(np.array([0, 0, height+HALF_CPL_RING]), 'Tank Passthru Module', ALUM, PAS_L, airfrm_in_rad, 'Shell', t_star, rocket.TANK_EQV_WT_T))
-    rocket.add_structure(Module('3rd Tank Passthru Module', ALUM, PAS_L, airfrm_in_rad, height+HALF_CPL_RING, 
-                                mono_thickness=AIRFRAME_THICKNESS, wt_thickness=AIRFRAME_THICKNESS))
+    #rocket.add_structure(Module('3rd Tank Passthru Module', ALUM, PAS_L, airfrm_in_rad, height+HALF_CPL_RING, mono_thickness=AIRFRAME_THICKNESS, wt_thickness=AIRFRAME_THICKNESS))
+    module_kwargs['3rd Tank Passthru Module'].update({'height_coord': height+HALF_CPL_RING}) 
+    rocket.add_structure(Module(**module_kwargs['3rd Tank Passthru Module']))
     rocket.parts[-1].add_component(cpl_ring(0.5), height)
     rocket.parts[-1].add_part('Plumbing', ABOVE_FUEL_M, 0.02, 0, 0, 'Point', height)
-    rocket.parts[-1].add_part('N2 to IPA Pipe', ALUM, N2_TO_IPA_L, N2_PIPE_IR, PIPE_THK, 'Shell',
-                             height, y_coord=-out_rad) # 1 in OD, 1/8th in thick
-    height += PAS_L + HALF_CPL_RING
-    
-    rocket.add_structure(Module('2nd Propulsion MicroModule', CFIBER, MICRO_L, airfrm_in_rad,
-                               height+THREE_QTR_CPL_RING))
+    rocket.parts[-1].add_part('N2 to IPA Pipe', ALUM, N2_TO_IPA_L, N2_PIPE_IR, PIPE_THK, 'Shell', height, y_coord=-out_rad) # 1 in OD, 1/8th in thick
+    height += HALF_CPL_RING
+    # add anything else here
+    height += PAS_L
+
+
+
+
+
+    # SECOND PROPULSION MICROMODULE
+    #rocket.add_structure(Module('2nd Propulsion MicroModule', CFIBER, MICRO_L, airfrm_in_rad, height+THREE_QTR_CPL_RING))
+    module_kwargs['2nd Propulsion MicroModule'].update({'height_coord': height+THREE_QTR_CPL_RING}) 
+    rocket.add_structure(Module(**module_kwargs['2nd Propulsion MicroModule']))
     rocket.parts[-1].add_component(cpl_ring(0.75), height)
-    height += THREE_QTR_CPL_RING + MICRO_L
-    
-    rocket.add_structure(Module('4th Tank Passthru Module', ALUM, PAS_L, airfrm_in_rad, height+THREE_QTR_CPL_RING, 
-                                mono_thickness=AIRFRAME_THICKNESS, wt_thickness=AIRFRAME_THICKNESS))
+    height += THREE_QTR_CPL_RING 
+    # add anything else here
+    height += MICRO_L
+   
+
+
+
+    # FOURTH TANK PASSTHROUGH
+    #rocket.add_structure(Module('4th Tank Passthru Module', ALUM, PAS_L, airfrm_in_rad, height+THREE_QTR_CPL_RING, mono_thickness=AIRFRAME_THICKNESS, wt_thickness=AIRFRAME_THICKNESS))
+    module_kwargs['4th Tank Passthru Module'].update({'height_coord': height+THREE_QTR_CPL_RING}) 
+    rocket.add_structure(Module(**module_kwargs['4th Tank Passthru Module']))
     rocket.parts[-1].add_component(cpl_ring(0.75), height)
-    height += THREE_QTR_CPL_RING + PAS_L
+    height += THREE_QTR_CPL_RING 
+    # add anything else here
+    height += PAS_L
     
-    rocket.add_structure(Module('AV Module', FIBERGLASS, AV_L, airfrm_in_rad, height+THREE_QTR_CPL_RING))
+
+
+
+    # AV MODULE
+    # rocket.add_structure(Module('AV Module', FIBERGLASS, AV_L, airfrm_in_rad, height+THREE_QTR_CPL_RING))
+    module_kwargs['AV Module'].update({'height_coord': height+THREE_QTR_CPL_RING}) 
+    rocket.add_structure(Module(**module_kwargs['4th Tank Passthru Module']))
     rocket.parts[-1].add_component(cpl_ring(0.75), height)
     height += THREE_QTR_CPL_RING
+    # add middle parts
     rocket.parts[-1].add_part('AV/360', ALUM, 0.3, .0433, 0, 'Blob', height)
     height += AV_L
     
+
+
+
+    # CAM/NS MODULE
     #rocket.add_structure(Module(np.array([0, 0, height+ THREE_QTR_CPL_RING]), 'CAM/N2 Passthru Module', ALUM, CAM_L, airfrm_in_rad, 'Shell', t_star, rocket.TANK_EQV_WT_T))
-    rocket.add_structure(Module('CAM/N2 Passthru Module', ALUM, CAM_L, airfrm_in_rad, height+THREE_QTR_CPL_RING,
-                                mono_thickness=AIRFRAME_THICKNESS, wt_thickness=AIRFRAME_THICKNESS))
+    #rocket.add_structure(Module('CAM/N2 Passthru Module', ALUM, CAM_L, airfrm_in_rad, height+THREE_QTR_CPL_RING, mono_thickness=AIRFRAME_THICKNESS, wt_thickness=AIRFRAME_THICKNESS))
+    module_kwargs['CAM/N2 Passthru Module'].update({'height_coord': height+THREE_QTR_CPL_RING}) 
+    rocket.add_structure(Module(**module_kwargs['CAM/N2 Passthru Module']))
     rocket.parts[-1].add_component(cpl_ring(0.75), height)
-    height += CAM_L + THREE_QTR_CPL_RING
+    height += THREE_QTR_CPL_RING
+    # add middle stuff here
+    height += CAM_L
+    # why is this at the top?
     rocket.parts[-1].add_part('Plumbing', UNDER_N2_M, 0.02, 0, 0, 'Point', height)
     rocket.parts[-1].add_part('Cameras', ALUM, 0.05, 0.05, 0, 'Blob', height)
-    
-    min_n2_mass = 1.5 * (n2_prop_reqs(rocket) + 1) # safety factor and assumed RCS needs
+
+
+
+
+    # N2 tank calculations (could be moved earlier)
+    min_n2_mass = 1.5 * (n2_prop_reqs(rocket, N2_TEMP, 0.95, N2_MM, R_UNIV) + 1) # safety factor and assumed RCS needs, 0.95 is n2 gas compressibility factor
     n2_tank_vol = min_n2_mass * R_UNIV * N2_TEMP / (N2_MM * MAX_N2_TANK_P)
     n2_tank_l   = n2_tank_vol / (np.pi * N2_TANK_OR**2)
     if n2_tank_l < 0.45:
@@ -659,34 +799,58 @@ def create_rocket(mprop, mdot, p_e,
     # maximum tank length assuming standard module and need for 4 inch of room above or below
     elif n2_tank_l > N2_L - 0.1016:
         n2_tank_l = N2_L - 0.1016  
-        
-    rocket.add_structure(Module('N2 Module', CFIBER, N2_L, airfrm_in_rad, height+THREE_QTR_CPL_RING))
+    
+    # N2 MODULE (this may need more updates since it depends on requirements)
+    #rocket.add_structure(Module('N2 Module', CFIBER, N2_L, airfrm_in_rad, height+THREE_QTR_CPL_RING))
+    module_kwargs['N2 Module'].update({'height_coord': height+THREE_QTR_CPL_RING}) 
+    rocket.add_structure(Module(**module_kwargs['N2 Module']))
     rocket.parts[-1].add_component(cpl_ring(0.75), height)
     height += THREE_QTR_CPL_RING
-    rocket.parts[-1].add_structure(N2_tank(rcs_mdot, min_n2_mass,
-                                          N2_TEMP, N2_MM, n2_tank_l, N2_TANK_OR, height))
-    rocket.rcs_tank = rocket.parts[-1].parts[-1] # for convenience
+    # add middle stuff
+    rocket.parts[-1].add_structure(N2_tank(rcs_mdot, min_n2_mass, N2_TEMP, N2_MM, n2_tank_l, N2_TANK_OR, height))
+    # save rcs tank as its own attribute for convenience
+    rocket.rcs_tank = rocket.parts[-1].parts[-1]
+    # update height to top of module
     height += N2_L
     
+
+
+
+
+    # RCS MODULE
     #rocket.add_structure(Module(np.array([0, 0, height+ THREE_QTR_CPL_RING]), 'RCS Module', ALUM, RCS_L, airfrm_in_rad, 'Shell', t_star, rocket.TANK_EQV_WT_T))
-    rocket.add_structure(Module('RCS Module', ALUM, RCS_L, airfrm_in_rad, height+THREE_QTR_CPL_RING,
-                                mono_thickness=AIRFRAME_THICKNESS, wt_thickness=AIRFRAME_THICKNESS))
+    #rocket.add_structure(Module('RCS Module', ALUM, RCS_L, airfrm_in_rad, height+THREE_QTR_CPL_RING, mono_thickness=AIRFRAME_THICKNESS, wt_thickness=AIRFRAME_THICKNESS))
+    module_kwargs['RCS Module'].update({'height_coord': height+THREE_QTR_CPL_RING}) 
+    rocket.add_structure(Module(**module_kwargs['RCS Module']))
     rocket.parts[-1].add_component(cpl_ring(0.75), height)
     height += THREE_QTR_CPL_RING
+    # add middle parts
     rocket.parts[-1].add_engine(rcs_mdot, rcs_p_e, rcs_p_ch, N2_TEMP, N2_KE, N2_MM, (200,100), 1, height, is_RCS=True)
     rocket.parts[-1].parts[-1].out_rad = out_rad
     rocket.parts[-1].parts[-1].tank = rocket.rcs_tank
-    rocket.rcs_sys = rocket.parts[-1].parts[-1] # for convenience
+    # save rcs system as its own attribute for convenience
+    rocket.rcs_sys = rocket.parts[-1].parts[-1] 
+    # update height to top of module
     height += RCS_L
-    
+
+
+
+
+    # ERS MODULE
     #rocket.add_structure(Module(np.array([0, 0, height+HALF_CPL_RING]), 'ERS Module', ALUM, ERS_L, airfrm_in_rad, 'Shell', t_star, rocket.TANK_EQV_WT_T))
-    rocket.add_structure(Module('ERS Module', ALUM, ERS_L, airfrm_in_rad, height+HALF_CPL_RING,
-                                mono_thickness=AIRFRAME_THICKNESS, wt_thickness=AIRFRAME_THICKNESS))
+    #rocket.add_structure(Module('ERS Module', ALUM, ERS_L, airfrm_in_rad, height+HALF_CPL_RING, mono_thickness=AIRFRAME_THICKNESS, wt_thickness=AIRFRAME_THICKNESS))
+    module_kwargs['ERS Module'].update({'height_coord': height+HALF_CPL_RING}) 
+    rocket.add_structure(Module(**module_kwargs['ERS Module']))
     rocket.parts[-1].add_component(cpl_ring(0.5), height)
     height += HALF_CPL_RING
+    # add middle parts
     rocket.parts[-1].add_part('ERS', ALUM, 0.1225, 0.07, 0, 'Blob', height)
+    # update height to top of module
     height += ERS_L
-    
+
+
+
+
     # ADD NOSECONE
     rocket.add_structure(Nosecone(CFIBER, CYL_NOSE_L,  con_nose_l, airfrm_in_rad, 0.00762, height+THREE_QTR_CPL_RING))
     rocket.parts[-1].add_component(cpl_ring(0.75), height)

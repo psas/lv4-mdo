@@ -1,9 +1,9 @@
 
-from .system_definition import R_UNIV, N2_TEMP, N2_MM
+# from .system_definition import R_UNIV
 
 # # The purpose of this code is to determine the requirements for pressurant based on the specifications of downstream subsystems. Refer to Huzel and Huang for explanations.
 
-def mass(p, v, t_g, z, mm):
+def mass(p, v, t_g, z, mm, r_univ):
     """Mass of pressurant: Huzel and Huang Eq. 5-1
 
     args:
@@ -12,11 +12,12 @@ def mass(p, v, t_g, z, mm):
         t_g: temperature (K)
         z: compressibility factor
         mm: molar mass (g/mol)
+        r_univ: universal gas constant
 
     returns:
         mass (kg) of pressurant
     """
-    return p * v * z * mm / (R_UNIV * t_g)
+    return p * v * z * mm / (r_univ * t_g)
 
 
 
@@ -58,7 +59,7 @@ def vap_prop_mass(q, c_pl, h_v, c_pv, t_v, t_u, t_e):
     return q / (c_pl * (t_v - t_e) + h_v + c_pv * (t_u - t_v))
 
 
-def vap_prop_vol(m_v, z, mm, t_u, p):
+def vap_prop_vol(m_v, z, mm, t_u, p, r_univ):
     """Volume of vaporized propellant: Huzel and Huang Eq. 5-4
 
     args:
@@ -68,11 +69,12 @@ def vap_prop_vol(m_v, z, mm, t_u, p):
         t_u: temperature of gas aver expulsion (K)
         p: pressure after expulsion
         t_e: temperature of propellant (K)
+        r_univ: universal gas constant
 
     returns:
         volume of vaporized propellant (m^3)
     """
-    return m_v * z * R_UNIV * t_u / (p * mm)
+    return m_v * z * r_univ * t_u / (p * mm)
 
 
 def gas_temp(m, c_pg, t_u, q):
@@ -96,7 +98,6 @@ def pressurant_reqs_2(p_tank, v_tank, z_g, mm_g,
                      c_pl, h_v, c_pv, t_v,
                      z_p, mm_p,
                      c_pg):
-
     """Required mass and temperature of propellant assuming heat transfer is only to propellant
     Huzel and Huang eq. 5-5, 5-6
 
@@ -116,6 +117,7 @@ def pressurant_reqs_2(p_tank, v_tank, z_g, mm_g,
         z_p: compressibility of pressurant
         mm_p: molar mass pressurant
         c_pg: specific heat of pressurant gas
+        r_univ: universal gas constant
 
     returns:
         m_g: mass of pressurant
@@ -123,8 +125,8 @@ def pressurant_reqs_2(p_tank, v_tank, z_g, mm_g,
     """
     q   = Q_pres_to_vap_prop(h, a, t, t_u, t_e)
     m_v = vap_prop_mass(q, c_pl, h_v, c_pv, t_v, t_u, t_e)
-    v_v = vap_prop_vol(m_v, z_p, mm_p, t_u, p_tank)
-    m_g = mass(p_tank, v_tank - v_v, t_u, z_g, mm_g)
+    v_v = vap_prop_vol(m_v, z_p, mm_p, t_u, p_tank, r_univ)
+    m_g = mass(p_tank, v_tank - v_v, t_u, z_g, mm_g, r_univ)
     t_g = gas_temp(m_g, c_pg, t_u, q)
     return m_g, t_g
 
@@ -139,26 +141,38 @@ def pressurant_reqs_3(p_tank, v_tank, z_g, mm_g,
                      c_pl, h_v, c_pv, t_v,
                      z_p, mm_p,
                      c_pg,
-                     q_g_tank, q_tank_p):
+                     q_g_tank, q_tank_p, r_univ):
     q   = Q_pres_to_vap_prop(h, a, t, t_u, t_e)
     m_v = vap_prop_mass(q + q_tank_p, c_pl, h_v, c_pv, t_v, t_u, t_e)
     v_v = vap_prop_vol(m_v, z_p, mm_p, t_u, p_tank)
-    m_g = mass(p_tank, v_tank - v_v, t_u, z_g, mm_g)
+    m_g = mass(p_tank, v_tank - v_v, t_u, z_g, mm_g, r_univ)
     t_g = gas_temp(m_g, c_pg, t_u, q + q_g_tank)
     return m_g, t_g
 
 
 
 # 1st order approximation
-def n2_prop_reqs(rkt):
-    m_g_lox = mass(rkt.lox_tank.p_0, rkt.lox_tank.volume, N2_TEMP, 0.95, N2_MM)
-    m_g_ipa = mass(rkt.ipa_tank.p_0, rkt.ipa_tank.volume, N2_TEMP, 0.95, N2_MM)
+def n2_prop_reqs(rkt, n2_temp, n2_z, n2_mm, r_univ):
+    """n2 for lox and ipa in rocket
+
+    args:
+        rkt: rocket
+        n2_temp: n2 gas temperature
+        n2_z: n2 gas compressibility factor
+        n2_mm: n2 gas molar mass
+
+    returns:
+        requirements for lox and ipa
+    """
+    m_g_lox = mass(rkt.lox_tank.p_0, rkt.lox_tank.volume, n2_temp, n2_z, n2_mm, r_univ)
+    m_g_ipa = mass(rkt.ipa_tank.p_0, rkt.ipa_tank.volume, n2_temp, n2_z, n2_mm, r_univ)
     return m_g_lox + m_g_ipa
 
 # n2 requirements with heat transfer
 def n2_prop_reqs_detailed(sim, z_g, c_pg,
                    z_p_lox, mm_lox, c_pl_lox, h_v_lox, c_pv_lox, t_v_lox, h_lox, t_u_lox,
-                   z_p_ipa, mm_ipa, c_pl_ipa, h_v_ipa, c_pv_ipa, t_v_ipa, h_ipa, t_u_ipa):
+                   z_p_ipa, mm_ipa, c_pl_ipa, h_v_ipa, c_pv_ipa, t_v_ipa, h_ipa, t_u_ipa, 
+                          r_univ):
     """Pressurant requirements for both lox and ipa"""
 
     # N2 requirements for LOX
@@ -179,7 +193,8 @@ def n2_prop_reqs_detailed(sim, z_g, c_pg,
                                          mm_p=mm_lox,
                                          c_pg=c_pg,
                                          q_g_tank=0, 
-                                         q_tank_p=0)
+                                         q_tank_p=0, 
+                                         r_univ=r_univ)
 
     # N2 requirements for IPA
     m_g_ipa, t_g_ipa = pressurant_reqs_3(p_tank=sim.LV4.ipa_tank.p_0, 
@@ -199,7 +214,8 @@ def n2_prop_reqs_detailed(sim, z_g, c_pg,
                                          mm_p=mm_ipa,
                                          c_pg=c_pg,
                                          q_g_tank=0, 
-                                         q_tank_p=0)
+                                         q_tank_p=0,
+                                         r_univ=r_univ)
 
     # total requirements is the sum of the two
     return m_g_lox + m_g_ipa, t_g_lox, t_g_ipa

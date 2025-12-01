@@ -7,32 +7,6 @@ import pyhwm2014
 
 from .quaternions import *
 
-#    a = 6378137.0 # m, semimajor axis, defining parameter of wgs 84
-#    flattening_inv = 298.257223563 # 1/f, defining parameter along with semimajor axis
-#    mu_earth  = 3.986004418 * 10**14 # m^3/s^2, earth gravitational parameter
-#        
-#        # derived parameters
-#    f = 1 / flattening_inv
-#    b = 6356752.3142 # m, semiminor axis
-#    e = 0.081819190842622 # eccentricity approximation
-#    earth_rad = 6.378137e6 # m, earth mean equitorial radius
-#    earth_mass = 5.9733328e24 # kg, mass of earth including atmosphere
-        
-        # more derived parameters
-#    e2 = f * (2 - f)
-#    a1 = a * e2
-#    a2 = a1 * a1
-#    a3 = a1 * e2 * 0.5
-#    a4 = 2.5 * a2
-#    a5 = a1 + a3
-#    a6 = 1 - e2
-        
-        # ref markely & crassidis
-#    J2 = 1.08262668355e-3
-#    J3 = -2.53265648533e-6
-#    J4 = -1.61962159137e-6
-#    erot   = 7.2921150e-5 # Sidearial Earth rotation rate, for coriolis accel
- 
 
 class Environment():
    
